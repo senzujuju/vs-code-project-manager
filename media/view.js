@@ -14,6 +14,10 @@
   let searchQuery = "";
   let globalEventsBound = false;
   const collapsedOverrides = new Map();
+  const SEARCH_RENDER_DELAY_MS = 60;
+  const TOOLTIP_UPDATE_DELAY_MS = 80;
+  let searchRenderTimeout;
+  let tooltipUpdateTimeout;
 
   window.addEventListener("message", (event) => {
     const message = event.data;
@@ -103,7 +107,7 @@
     `;
 
     bindEvents();
-    updatePathTooltips();
+    scheduleUpdatePathTooltips();
 
     if (focusSearch) {
       const searchInput = app.querySelector("[data-project-search]");
@@ -121,6 +125,13 @@
         : { current: null, recent: [], pinned: [], others: [], groups: [] };
     const recent = Array.isArray(nextState.recent) ? nextState.recent : [];
     const groups = Array.isArray(nextState.groups) ? nextState.groups : [];
+
+    const groupIds = new Set(groups.map((group) => group.id));
+    for (const groupId of Array.from(collapsedOverrides.keys())) {
+      if (!groupIds.has(groupId)) {
+        collapsedOverrides.delete(groupId);
+      }
+    }
 
     const mergedGroups = groups.map((group) => {
       const localCollapsed = collapsedOverrides.get(group.id);
@@ -295,7 +306,7 @@
 
     app.addEventListener("click", handleAppClick);
     app.addEventListener("input", handleAppInput);
-    window.addEventListener("resize", updatePathTooltips);
+    window.addEventListener("resize", scheduleUpdatePathTooltips);
   }
 
   function handleAppClick(event) {
@@ -354,7 +365,15 @@
 
     const selectionStart = target.selectionStart ?? searchQuery.length;
     const selectionEnd = target.selectionEnd ?? selectionStart;
-    render({ focusSearch: true, selectionStart, selectionEnd });
+
+    if (searchRenderTimeout) {
+      clearTimeout(searchRenderTimeout);
+    }
+
+    searchRenderTimeout = setTimeout(() => {
+      searchRenderTimeout = undefined;
+      render({ focusSearch: true, selectionStart, selectionEnd });
+    }, SEARCH_RENDER_DELAY_MS);
   }
 
   function toggleGroupCollapsedLocally(groupId) {
@@ -393,6 +412,17 @@
         element.removeAttribute("title");
       }
     });
+  }
+
+  function scheduleUpdatePathTooltips() {
+    if (tooltipUpdateTimeout) {
+      clearTimeout(tooltipUpdateTimeout);
+    }
+
+    tooltipUpdateTimeout = setTimeout(() => {
+      tooltipUpdateTimeout = undefined;
+      updatePathTooltips();
+    }, TOOLTIP_UPDATE_DELAY_MS);
   }
 
   function cardIcon(name) {

@@ -36,7 +36,7 @@ export function resolveProjectGroupSections({
   const manualUris = new Set(manualProjects.map((project) => project.uri));
 
   return groups.map((group) => {
-    const rawChildren = group.collapsed ? [] : safeListChildren(listGroupChildren, group);
+    const rawChildren = safeListChildren(listGroupChildren, group);
     const uniqueUris = new Set<string>();
 
     const projects = rawChildren
