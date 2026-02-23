@@ -1,0 +1,259 @@
+{
+  "name": "project-switcher",
+  "displayName": "Project Switcher",
+  "description": "Webview-first project switcher for folders and workspaces",
+  "version": "0.0.1",
+  "publisher": "kungurcev",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onView:projectSwitcher.main",
+    "onCommand:projectSwitcher.focus",
+    "onCommand:projectSwitcher.saveCurrentProject",
+    "onCommand:projectSwitcher.addProject",
+    "onCommand:projectSwitcher.addFolderProject",
+    "onCommand:projectSwitcher.addWorkspaceProject",
+    "onCommand:projectSwitcher.addProjectGroup"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "projectSwitcher.focus",
+        "title": "Project Switcher: Focus",
+        "category": "Project Switcher",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "projectSwitcher.saveCurrentProject",
+        "title": "Project Switcher: Save Current Project",
+        "category": "Project Switcher",
+        "icon": "$(bookmark)"
+      },
+      {
+        "command": "projectSwitcher.addProject",
+        "title": "Project Switcher: Add Project",
+        "category": "Project Switcher",
+        "icon": "$(add)"
+      },
+      {
+        "command": "projectSwitcher.addFolderProject",
+        "title": "Project Switcher: Add Folder",
+        "category": "Project Switcher",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "projectSwitcher.addWorkspaceProject",
+        "title": "Project Switcher: Add Workspace",
+        "category": "Project Switcher",
+        "icon": "$(files)"
+      },
+      {
+        "command": "projectSwitcher.addProjectGroup",
+        "title": "Project Switcher: Add Project Group",
+        "category": "Project Switcher",
+        "icon": "$(folder)"
+      },
+      {
+        "command": "projectSwitcher.refresh",
+        "title": "Project Switcher: Refresh",
+        "category": "Project Switcher",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "projectSwitcher.openProject",
+        "title": "Open",
+        "category": "Project Switcher"
+      },
+      {
+        "command": "projectSwitcher.openProjectInNewWindow",
+        "title": "Open in New Window",
+        "category": "Project Switcher"
+      },
+      {
+        "command": "projectSwitcher.renameProject",
+        "title": "Rename",
+        "category": "Project Switcher"
+      },
+      {
+        "command": "projectSwitcher.removeProject",
+        "title": "Remove",
+        "category": "Project Switcher"
+      },
+      {
+        "command": "projectSwitcher.togglePinProject",
+        "title": "Project Switcher: Toggle Pin",
+        "category": "Project Switcher"
+      },
+      {
+        "command": "projectSwitcher.pinProject",
+        "title": "Pin",
+        "category": "Project Switcher"
+      },
+      {
+        "command": "projectSwitcher.unpinProject",
+        "title": "Unpin",
+        "category": "Project Switcher"
+      },
+      {
+        "command": "projectSwitcher.revealInFinder",
+        "title": "Reveal in Finder",
+        "category": "Project Switcher"
+      },
+      {
+        "command": "projectSwitcher.toggleCurrentSection",
+        "title": "Show Current Project",
+        "category": "Project Switcher"
+      },
+      {
+        "command": "projectSwitcher.toggleRecentSection",
+        "title": "Show Recent",
+        "category": "Project Switcher"
+      },
+      {
+        "command": "projectSwitcher.togglePinnedSection",
+        "title": "Show Pinned",
+        "category": "Project Switcher"
+      },
+      {
+        "command": "projectSwitcher.toggleProjectsSection",
+        "title": "Show Projects",
+        "category": "Project Switcher"
+      },
+      {
+        "command": "projectSwitcher.toggleGroupsSection",
+        "title": "Show Project Groups",
+        "category": "Project Switcher"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "projectSwitcher",
+          "title": "Projects",
+          "icon": "media/activitybar.svg"
+        }
+      ]
+    },
+    "views": {
+      "projectSwitcher": [
+        {
+          "id": "projectSwitcher.main",
+          "name": "Project Switcher",
+          "type": "webview"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "projectSwitcher.saveCurrentProject",
+          "when": "view == projectSwitcher.main",
+          "group": "navigation@1"
+        },
+        {
+          "command": "projectSwitcher.addProject",
+          "when": "view == projectSwitcher.main",
+          "group": "navigation@2"
+        },
+        {
+          "command": "projectSwitcher.refresh",
+          "when": "view == projectSwitcher.main",
+          "group": "navigation@4"
+        }
+      ],
+      "webview/context": [
+        {
+          "command": "projectSwitcher.openProject",
+          "when": "webviewId == 'projectSwitcher.main' && webviewSection == 'projectCard'",
+          "group": "1_open@1"
+        },
+        {
+          "command": "projectSwitcher.openProjectInNewWindow",
+          "when": "webviewId == 'projectSwitcher.main' && webviewSection == 'projectCard' && projectIsCurrent != true",
+          "group": "1_open@2"
+        },
+        {
+          "command": "projectSwitcher.revealInFinder",
+          "when": "webviewId == 'projectSwitcher.main' && webviewSection == 'projectCard' && projectVirtual != true",
+          "group": "1_open@3"
+        },
+        {
+          "command": "projectSwitcher.pinProject",
+          "when": "webviewId == 'projectSwitcher.main' && webviewSection == 'projectCard' && projectVirtual != true && projectPinned != true",
+          "group": "2_manage@1"
+        },
+        {
+          "command": "projectSwitcher.unpinProject",
+          "when": "webviewId == 'projectSwitcher.main' && webviewSection == 'projectCard' && projectVirtual != true && projectPinned == true",
+          "group": "2_manage@1"
+        },
+        {
+          "command": "projectSwitcher.renameProject",
+          "when": "webviewId == 'projectSwitcher.main' && webviewSection == 'projectCard' && projectVirtual != true",
+          "group": "2_manage@2"
+        },
+        {
+          "command": "projectSwitcher.removeProject",
+          "when": "webviewId == 'projectSwitcher.main' && webviewSection == 'projectCard' && projectVirtual != true",
+          "group": "3_danger@1"
+        },
+        {
+          "command": "projectSwitcher.toggleCurrentSection",
+          "when": "webviewId == 'projectSwitcher.main' && webviewSection == 'sidebarRoot'",
+          "group": "1_visibility@1",
+          "toggled": "projectSwitcher.sectionVisible.current"
+        },
+        {
+          "command": "projectSwitcher.toggleRecentSection",
+          "when": "webviewId == 'projectSwitcher.main' && webviewSection == 'sidebarRoot'",
+          "group": "1_visibility@2",
+          "toggled": "projectSwitcher.sectionVisible.recent"
+        },
+        {
+          "command": "projectSwitcher.togglePinnedSection",
+          "when": "webviewId == 'projectSwitcher.main' && webviewSection == 'sidebarRoot'",
+          "group": "1_visibility@3",
+          "toggled": "projectSwitcher.sectionVisible.pinned"
+        },
+        {
+          "command": "projectSwitcher.toggleProjectsSection",
+          "when": "webviewId == 'projectSwitcher.main' && webviewSection == 'sidebarRoot'",
+          "group": "1_visibility@4",
+          "toggled": "projectSwitcher.sectionVisible.projects"
+        },
+        {
+          "command": "projectSwitcher.toggleGroupsSection",
+          "when": "webviewId == 'projectSwitcher.main' && webviewSection == 'sidebarRoot'",
+          "group": "1_visibility@5",
+          "toggled": "projectSwitcher.sectionVisible.groups"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Project Switcher",
+      "properties": {
+        "projectSwitcher.openInNewWindow": {
+          "type": "boolean",
+          "default": false,
+          "description": "Open selected project in a new window instead of the current window."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "watch": "tsc -watch -p .",
+    "build:test": "tsc -p tsconfig.test.json",
+    "test": "npm run build:test && node --test dist-test/**/*.test.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.5",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.8.2"
+  }
+}
