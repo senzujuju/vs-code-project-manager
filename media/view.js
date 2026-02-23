@@ -1,13 +1,20 @@
 (function () {
   const vscode = acquireVsCodeApi();
   const app = document.getElementById("app");
+  const DEFAULT_SECTION_COLLAPSE_STATE = {
+    current: false,
+    recent: false,
+    pinned: false,
+    projects: false
+  };
 
   let state = {
     current: null,
     recent: [],
     pinned: [],
     others: [],
-    groups: []
+    groups: [],
+    sectionCollapseState: { ...DEFAULT_SECTION_COLLAPSE_STATE }
   };
 
   let errorMessage = "";
@@ -45,6 +52,7 @@
     const filteredPinned = filterProjects(state.pinned);
     const filteredOthers = filterProjects(state.others);
     const filteredGroups = filterGroupSections(state.groups);
+    const forceExpanded = searchQuery.trim().length > 0;
 
     const rootContextValue = escapeHtml(
       JSON.stringify({
@@ -97,11 +105,11 @@
         </div>
         ${errorMessage ? `<div class="error">${escapeHtml(errorMessage)}</div>` : ""}
         ${total === 0 ? `<div class="empty">${emptyMessage}</div>` : ""}
-        ${sectionTemplate("Current project", filteredCurrent ? [filteredCurrent] : [])}
+        ${sectionTemplate("current", "Current project", filteredCurrent ? [filteredCurrent] : [], forceExpanded)}
         ${filteredCurrent && hasSectionsAfterCurrent ? `<div class="divider"></div>` : ""}
-        ${sectionTemplate("Recent", filteredRecent)}
-        ${sectionTemplate("Favorites", filteredPinned)}
-        ${sectionTemplate("Projects", filteredOthers)}
+        ${sectionTemplate("recent", "Recent", filteredRecent, forceExpanded)}
+        ${sectionTemplate("pinned", "Favorites", filteredPinned, forceExpanded)}
+        ${sectionTemplate("projects", "Projects", filteredOthers, forceExpanded)}
         ${filteredGroups.map(groupSectionTemplate).join("")}
       </div>
     `;
@@ -122,9 +130,17 @@
     const nextState =
       payload && typeof payload === "object"
         ? payload
-        : { current: null, recent: [], pinned: [], others: [], groups: [] };
+        : {
+            current: null,
+            recent: [],
+            pinned: [],
+            others: [],
+            groups: [],
+            sectionCollapseState: { ...DEFAULT_SECTION_COLLAPSE_STATE }
+          };
     const recent = Array.isArray(nextState.recent) ? nextState.recent : [];
     const groups = Array.isArray(nextState.groups) ? nextState.groups : [];
+    const sectionCollapseState = normalizeSectionCollapseState(nextState.sectionCollapseState);
 
     const groupIds = new Set(groups.map((group) => group.id));
     for (const groupId of Array.from(collapsedOverrides.keys())) {
@@ -154,8 +170,29 @@
     return {
       ...nextState,
       recent,
-      groups: mergedGroups
+      groups: mergedGroups,
+      sectionCollapseState
     };
+  }
+
+  function normalizeSectionCollapseState(value) {
+    if (!value || typeof value !== "object") {
+      return { ...DEFAULT_SECTION_COLLAPSE_STATE };
+    }
+
+    const candidate = value;
+
+    return {
+      current: typeof candidate.current === "boolean" ? candidate.current : DEFAULT_SECTION_COLLAPSE_STATE.current,
+      recent: typeof candidate.recent === "boolean" ? candidate.recent : DEFAULT_SECTION_COLLAPSE_STATE.recent,
+      pinned: typeof candidate.pinned === "boolean" ? candidate.pinned : DEFAULT_SECTION_COLLAPSE_STATE.pinned,
+      projects:
+        typeof candidate.projects === "boolean" ? candidate.projects : DEFAULT_SECTION_COLLAPSE_STATE.projects
+    };
+  }
+
+  function isCollapsibleSection(section) {
+    return section === "current" || section === "recent" || section === "pinned" || section === "projects";
   }
 
   function filterProjects(projects) {
@@ -191,17 +228,25 @@
     return haystack.includes(query);
   }
 
-  function sectionTemplate(title, projects) {
+  function sectionTemplate(section, title, projects, forceExpanded) {
     if (!projects || projects.length === 0) {
       return "";
     }
 
+    const collapsed = forceExpanded ? false : Boolean(state.sectionCollapseState[section]);
+
     return `
       <section class="section">
-        <h2 class="section-title">${escapeHtml(title)}</h2>
-        <div class="project-list">
-          ${projects.map(projectCardTemplate).join("")}
-        </div>
+        <button
+          class="section-toggle"
+          type="button"
+          data-section-toggle="${escapeHtml(section)}"
+          aria-expanded="${collapsed ? "false" : "true"}"
+        >
+          <span class="section-title">${escapeHtml(title)}</span>
+          <span class="section-caret ${collapsed ? "is-collapsed" : ""}" aria-hidden="true"></span>
+        </button>
+        ${collapsed ? "" : `<div class="project-list">${projects.map(projectCardTemplate).join("")}</div>`}
       </section>
     `;
   }
@@ -332,6 +377,15 @@
       return;
     }
 
+    const sectionToggle = target.closest("[data-section-toggle]");
+    if (sectionToggle) {
+      const section = sectionToggle.getAttribute("data-section-toggle");
+      if (section && toggleSectionCollapsedLocally(section)) {
+        vscode.postMessage({ type: "toggleSectionCollapsed", section });
+      }
+      return;
+    }
+
     const groupActionButton = target.closest("[data-group-action]");
     if (groupActionButton) {
       postGroupAction(groupActionButton);
@@ -408,6 +462,26 @@
       searchRenderTimeout = undefined;
       render({ focusSearch: true, selectionStart, selectionEnd });
     }, SEARCH_RENDER_DELAY_MS);
+  }
+
+  function toggleSectionCollapsedLocally(section) {
+    if (!isCollapsibleSection(section)) {
+      return false;
+    }
+
+    const currentCollapseState = normalizeSectionCollapseState(state.sectionCollapseState);
+    const nextCollapsed = !currentCollapseState[section];
+
+    state = {
+      ...state,
+      sectionCollapseState: {
+        ...currentCollapseState,
+        [section]: nextCollapsed
+      }
+    };
+
+    render();
+    return true;
   }
 
   function toggleGroupCollapsedLocally(groupId) {
