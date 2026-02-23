@@ -99,7 +99,7 @@ test("resolveProjectGroupSections sorts group projects by name", () => {
   );
 });
 
-test("resolveProjectGroupSections does not scan child folders when group is collapsed", () => {
+test("resolveProjectGroupSections keeps child folders available when group is collapsed", () => {
   const groups: ProjectGroup[] = [
     {
       id: "g-1",
@@ -121,8 +121,11 @@ test("resolveProjectGroupSections does not scan child folders when group is coll
     }
   });
 
-  assert.equal(calls, 0);
+  assert.equal(calls, 1);
   assert.equal(sections.length, 1);
   assert.equal(sections[0].collapsed, true);
-  assert.deepEqual(sections[0].projects, []);
+  assert.deepEqual(
+    sections[0].projects.map((project) => project.uri),
+    ["file:///tmp/job/api"]
+  );
 });

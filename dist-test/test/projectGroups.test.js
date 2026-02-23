@@ -83,7 +83,7 @@ const projectGroups_1 = require("../src/core/projectGroups");
     });
     strict_1.default.deepEqual(sections[0].projects.map((project) => project.name), ["api", "web"]);
 });
-(0, node_test_1.default)("resolveProjectGroupSections does not scan child folders when group is collapsed", () => {
+(0, node_test_1.default)("resolveProjectGroupSections keeps child folders available when group is collapsed", () => {
     const groups = [
         {
             id: "g-1",
@@ -103,8 +103,8 @@ const projectGroups_1 = require("../src/core/projectGroups");
             return [{ name: "api", uri: "file:///tmp/job/api" }];
         }
     });
-    strict_1.default.equal(calls, 0);
+    strict_1.default.equal(calls, 1);
     strict_1.default.equal(sections.length, 1);
     strict_1.default.equal(sections[0].collapsed, true);
-    strict_1.default.deepEqual(sections[0].projects, []);
+    strict_1.default.deepEqual(sections[0].projects.map((project) => project.uri), ["file:///tmp/job/api"]);
 });

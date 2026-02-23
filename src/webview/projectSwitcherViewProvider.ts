@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { resolveProjectGroupSections, ResolvedGroupProject } from "../core/projectGroups";
+import { GroupChildFolder, resolveProjectGroupSections, ResolvedGroupProject } from "../core/projectGroups";
 import { ProjectGroup, ProjectStore, StoredProject } from "../core/projectStore";
 import { DEFAULT_SECTION_VISIBILITY, SectionVisibility, selectRecentProjects } from "../core/viewSections";
 
@@ -54,6 +54,11 @@ interface WebviewState {
   groups: WebviewGroupSection[];
 }
 
+interface GroupChildrenCacheEntry {
+  rootUri: string;
+  children: GroupChildFolder[];
+}
+
 type IncomingMessage =
   | { type: "saveCurrent" }
   | { type: "addProject" }
@@ -73,6 +78,7 @@ export class ProjectSwitcherViewProvider implements vscode.WebviewViewProvider, 
 
   private readonly disposables: vscode.Disposable[] = [];
   private readonly virtualProjectUriById = new Map<string, string>();
+  private readonly groupChildrenCache = new Map<string, GroupChildrenCacheEntry>();
   private sectionVisibility: SectionVisibility;
   private view?: vscode.WebviewView;
 
@@ -126,6 +132,7 @@ export class ProjectSwitcherViewProvider implements vscode.WebviewViewProvider, 
   }
 
   refresh(): void {
+    this.groupChildrenCache.clear();
     this.postState();
   }
 
@@ -242,6 +249,8 @@ export class ProjectSwitcherViewProvider implements vscode.WebviewViewProvider, 
     const currentUri = this.getCurrentWorkspaceUri();
     const currentBadgeColor = this.getCurrentWorkspaceBadgeColor();
     const savedProjects = this.store.getAllProjects();
+    const groups = this.store.getAllGroups();
+    this.syncGroupChildrenCache(groups);
     const savedWebviewProjects = savedProjects.map((project) => {
       return mapStoredProjectToWebviewProject(project, currentUri, currentBadgeColor);
     });
@@ -250,7 +259,7 @@ export class ProjectSwitcherViewProvider implements vscode.WebviewViewProvider, 
 
     const groupSections = resolveProjectGroupSections({
       manualProjects: savedProjects,
-      groups: this.store.getAllGroups(),
+      groups,
       listGroupChildren: (group) => this.listGroupChildren(group)
     }).map((section) => {
       return {
@@ -287,6 +296,23 @@ export class ProjectSwitcherViewProvider implements vscode.WebviewViewProvider, 
       others: this.sectionVisibility.projects ? others : [],
       groups: this.sectionVisibility.groups ? restGroups : []
     };
+  }
+
+  private syncGroupChildrenCache(groups: ProjectGroup[]): void {
+    const validGroupIds = new Set(groups.map((group) => group.id));
+
+    for (const groupId of Array.from(this.groupChildrenCache.keys())) {
+      if (!validGroupIds.has(groupId)) {
+        this.groupChildrenCache.delete(groupId);
+      }
+    }
+
+    for (const group of groups) {
+      const cached = this.groupChildrenCache.get(group.id);
+      if (cached && cached.rootUri !== group.rootUri) {
+        this.groupChildrenCache.delete(group.id);
+      }
+    }
   }
 
   private getCurrentWorkspaceUri(): string | undefined {
@@ -345,15 +371,24 @@ export class ProjectSwitcherViewProvider implements vscode.WebviewViewProvider, 
     return true;
   }
 
-  private listGroupChildren(group: ProjectGroup): { name: string; uri: string }[] {
+  private listGroupChildren(group: ProjectGroup): GroupChildFolder[] {
+    const cached = this.groupChildrenCache.get(group.id);
+    if (cached && cached.rootUri === group.rootUri) {
+      return cached.children;
+    }
+
     const rootPath = getFilePath(group.rootUri);
     if (!rootPath) {
+      this.groupChildrenCache.set(group.id, {
+        rootUri: group.rootUri,
+        children: []
+      });
       return [];
     }
 
     try {
       const entries = fs.readdirSync(rootPath, { withFileTypes: true });
-      return entries
+      const children = entries
         .filter((entry) => entry.isDirectory())
         .map((entry) => {
           const folderPath = path.join(rootPath, entry.name);
@@ -362,7 +397,18 @@ export class ProjectSwitcherViewProvider implements vscode.WebviewViewProvider, 
             uri: vscode.Uri.file(folderPath).toString()
           };
         });
+
+      this.groupChildrenCache.set(group.id, {
+        rootUri: group.rootUri,
+        children
+      });
+
+      return children;
     } catch {
+      this.groupChildrenCache.set(group.id, {
+        rootUri: group.rootUri,
+        children: []
+      });
       return [];
     }
   }
