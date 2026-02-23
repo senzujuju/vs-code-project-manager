@@ -1,7 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  DEFAULT_SECTION_COLLAPSE_STATE,
   DEFAULT_SECTION_VISIBILITY,
+  normalizeSectionCollapseState,
   normalizeSectionVisibility,
   selectRecentProjects
 } from "../src/core/viewSections";
@@ -26,6 +28,27 @@ test("normalizeSectionVisibility merges known flags", () => {
     pinned: true,
     projects: true,
     groups: false
+  });
+});
+
+test("normalizeSectionCollapseState returns defaults for invalid input", () => {
+  assert.deepEqual(normalizeSectionCollapseState(undefined), DEFAULT_SECTION_COLLAPSE_STATE);
+  assert.deepEqual(normalizeSectionCollapseState(null), DEFAULT_SECTION_COLLAPSE_STATE);
+  assert.deepEqual(normalizeSectionCollapseState("invalid"), DEFAULT_SECTION_COLLAPSE_STATE);
+});
+
+test("normalizeSectionCollapseState merges known flags", () => {
+  const result = normalizeSectionCollapseState({
+    current: true,
+    recent: true,
+    unknownFlag: true
+  });
+
+  assert.deepEqual(result, {
+    current: true,
+    recent: true,
+    pinned: false,
+    projects: false
   });
 });
 

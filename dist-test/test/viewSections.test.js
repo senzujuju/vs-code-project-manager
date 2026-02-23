@@ -26,6 +26,24 @@ const viewSections_1 = require("../src/core/viewSections");
         groups: false
     });
 });
+(0, node_test_1.default)("normalizeSectionCollapseState returns defaults for invalid input", () => {
+    strict_1.default.deepEqual((0, viewSections_1.normalizeSectionCollapseState)(undefined), viewSections_1.DEFAULT_SECTION_COLLAPSE_STATE);
+    strict_1.default.deepEqual((0, viewSections_1.normalizeSectionCollapseState)(null), viewSections_1.DEFAULT_SECTION_COLLAPSE_STATE);
+    strict_1.default.deepEqual((0, viewSections_1.normalizeSectionCollapseState)("invalid"), viewSections_1.DEFAULT_SECTION_COLLAPSE_STATE);
+});
+(0, node_test_1.default)("normalizeSectionCollapseState merges known flags", () => {
+    const result = (0, viewSections_1.normalizeSectionCollapseState)({
+        current: true,
+        recent: true,
+        unknownFlag: true
+    });
+    strict_1.default.deepEqual(result, {
+        current: true,
+        recent: true,
+        pinned: false,
+        projects: false
+    });
+});
 (0, node_test_1.default)("selectRecentProjects returns latest five non-pinned non-current projects", () => {
     const projects = [
         { id: "p1", pinned: false, isCurrent: false, lastOpenedAt: 10 },

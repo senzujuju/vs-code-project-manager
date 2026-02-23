@@ -3,11 +3,17 @@ import * as vscode from "vscode";
 import { resolveProjectGroupId } from "./core/commandContext";
 import { ProjectStore, ProjectStorageAdapter, SaveProjectInput, StoreState, StoredProject } from "./core/projectStore";
 import { ProjectSwitchService } from "./core/projectSwitchService";
-import { normalizeSectionVisibility, SectionVisibility } from "./core/viewSections";
+import {
+  normalizeSectionCollapseState,
+  normalizeSectionVisibility,
+  SectionCollapseState,
+  SectionVisibility
+} from "./core/viewSections";
 import { ProjectSwitcherActions, ProjectSwitcherViewProvider } from "./webview/projectSwitcherViewProvider";
 
 const STORAGE_KEY = "projectSwitcher.state";
 const SECTION_VISIBILITY_STORAGE_KEY = "projectSwitcher.sectionVisibility";
+const SECTION_COLLAPSE_STORAGE_KEY = "projectSwitcher.sectionCollapseState";
 
 const SECTION_VISIBILITY_CONTEXT = {
   current: "projectSwitcher.sectionVisible.current",
@@ -57,6 +63,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const store = new ProjectStore(new GlobalStateStorageAdapter(context));
   const switchService = new ProjectSwitchService(store);
   let sectionVisibility = normalizeSectionVisibility(context.globalState.get(SECTION_VISIBILITY_STORAGE_KEY));
+  let sectionCollapseState = normalizeSectionCollapseState(context.globalState.get(SECTION_COLLAPSE_STORAGE_KEY));
   applySectionVisibilityContext(sectionVisibility);
 
   let viewProvider: ProjectSwitcherViewProvider;
@@ -202,6 +209,15 @@ export function activate(context: vscode.ExtensionContext): void {
       });
     },
 
+    toggleSectionCollapsed: async (section: keyof SectionCollapseState) => {
+      sectionCollapseState = {
+        ...sectionCollapseState,
+        [section]: !sectionCollapseState[section]
+      };
+      void context.globalState.update(SECTION_COLLAPSE_STORAGE_KEY, sectionCollapseState);
+      viewProvider.setSectionCollapseState(sectionCollapseState);
+    },
+
     toggleGroupCollapsed: async (groupId: string) => {
       const group = store.toggleGroupCollapsed(groupId);
       if (!group) {
@@ -306,7 +322,13 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   };
 
-  viewProvider = new ProjectSwitcherViewProvider(context.extensionUri, store, actions, sectionVisibility);
+  viewProvider = new ProjectSwitcherViewProvider(
+    context.extensionUri,
+    store,
+    actions,
+    sectionVisibility,
+    sectionCollapseState
+  );
 
   const setSectionVisibility = (next: SectionVisibility) => {
     sectionVisibility = next;

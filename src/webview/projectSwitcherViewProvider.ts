@@ -3,7 +3,13 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { GroupChildFolder, resolveProjectGroupSections, ResolvedGroupProject } from "../core/projectGroups";
 import { ProjectGroup, ProjectStore, StoredProject } from "../core/projectStore";
-import { DEFAULT_SECTION_VISIBILITY, SectionVisibility, selectRecentProjects } from "../core/viewSections";
+import {
+  DEFAULT_SECTION_COLLAPSE_STATE,
+  DEFAULT_SECTION_VISIBILITY,
+  SectionCollapseState,
+  SectionVisibility,
+  selectRecentProjects
+} from "../core/viewSections";
 
 const ENABLE_WORKSPACE_ACCENT_BADGE_COLOR = true;
 
@@ -13,6 +19,7 @@ export interface ProjectSwitcherActions {
   addFolderProject(): Promise<void>;
   addWorkspaceProject(): Promise<void>;
   addProjectGroup(): Promise<void>;
+  toggleSectionCollapsed(section: keyof SectionCollapseState): Promise<void>;
   toggleGroupCollapsed(groupId: string): Promise<void>;
   removeProjectGroup(groupId: string): Promise<void>;
   openProject(projectId: string, newWindow?: boolean): Promise<void>;
@@ -53,6 +60,7 @@ interface WebviewState {
   pinned: WebviewProject[];
   others: WebviewProject[];
   groups: WebviewGroupSection[];
+  sectionCollapseState: SectionCollapseState;
 }
 
 interface GroupChildrenCacheEntry {
@@ -66,6 +74,7 @@ type IncomingMessage =
   | { type: "addFolder" }
   | { type: "addWorkspace" }
   | { type: "addGroup" }
+  | { type: "toggleSectionCollapsed"; section: keyof SectionCollapseState }
   | { type: "toggleGroupCollapsed"; groupId: string }
   | { type: "removeGroup"; groupId: string }
   | { type: "refresh" }
@@ -82,15 +91,18 @@ export class ProjectSwitcherViewProvider implements vscode.WebviewViewProvider, 
   private readonly virtualProjectUriById = new Map<string, string>();
   private readonly groupChildrenCache = new Map<string, GroupChildrenCacheEntry>();
   private sectionVisibility: SectionVisibility;
+  private sectionCollapseState: SectionCollapseState;
   private view?: vscode.WebviewView;
 
   constructor(
     private readonly extensionUri: vscode.Uri,
     private readonly store: ProjectStore,
     private readonly actions: ProjectSwitcherActions,
-    sectionVisibility: SectionVisibility = DEFAULT_SECTION_VISIBILITY
+    sectionVisibility: SectionVisibility = DEFAULT_SECTION_VISIBILITY,
+    sectionCollapseState: SectionCollapseState = DEFAULT_SECTION_COLLAPSE_STATE
   ) {
     this.sectionVisibility = { ...sectionVisibility };
+    this.sectionCollapseState = { ...sectionCollapseState };
 
     const unsubscribe = this.store.onDidChange(() => {
       this.postState();
@@ -143,6 +155,11 @@ export class ProjectSwitcherViewProvider implements vscode.WebviewViewProvider, 
     this.postState();
   }
 
+  setSectionCollapseState(sectionCollapseState: SectionCollapseState): void {
+    this.sectionCollapseState = { ...sectionCollapseState };
+    this.postState();
+  }
+
   reveal(): Thenable<void> {
     return vscode.commands.executeCommand(`${ProjectSwitcherViewProvider.viewType}.focus`);
   }
@@ -176,6 +193,9 @@ export class ProjectSwitcherViewProvider implements vscode.WebviewViewProvider, 
         return;
       case "addGroup":
         await this.actions.addProjectGroup();
+        return;
+      case "toggleSectionCollapsed":
+        await this.actions.toggleSectionCollapsed(message.section);
         return;
       case "toggleGroupCollapsed":
         await this.actions.toggleGroupCollapsed(message.groupId);
@@ -299,7 +319,8 @@ export class ProjectSwitcherViewProvider implements vscode.WebviewViewProvider, 
       recent: this.sectionVisibility.recent ? recent : [],
       pinned: this.sectionVisibility.pinned ? pinned : [],
       others: this.sectionVisibility.projects ? others : [],
-      groups: this.sectionVisibility.groups ? restGroups : []
+      groups: this.sectionVisibility.groups ? restGroups : [],
+      sectionCollapseState: this.sectionCollapseState
     };
   }
 
