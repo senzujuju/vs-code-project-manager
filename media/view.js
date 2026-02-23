@@ -100,7 +100,7 @@
         ${sectionTemplate("Current project", filteredCurrent ? [filteredCurrent] : [])}
         ${filteredCurrent && hasSectionsAfterCurrent ? `<div class="divider"></div>` : ""}
         ${sectionTemplate("Recent", filteredRecent)}
-        ${sectionTemplate("Pinned", filteredPinned)}
+        ${sectionTemplate("Favorites", filteredPinned)}
         ${sectionTemplate("Projects", filteredOthers)}
         ${filteredGroups.map(groupSectionTemplate).join("")}
       </div>
@@ -208,18 +208,35 @@
 
   function groupSectionTemplate(section) {
     const collapsed = Boolean(section.collapsed);
+    const contextValue = JSON.stringify({
+      webviewSection: "projectGroupSection",
+      preventDefaultContextMenuItems: true,
+      groupId: section.id
+    });
 
     return `
-      <section class="section">
-        <button
-          class="section-toggle"
-          type="button"
-          data-group-toggle="${escapeHtml(section.id)}"
-          aria-expanded="${collapsed ? "false" : "true"}"
-        >
-          <span class="section-title">${escapeHtml(section.title)}</span>
-          <span class="section-caret ${collapsed ? "is-collapsed" : ""}" aria-hidden="true"></span>
-        </button>
+      <section class="section group-section">
+        <div class="section-header" data-vscode-context="${escapeHtml(contextValue)}">
+          <button
+            class="section-toggle"
+            type="button"
+            data-group-toggle="${escapeHtml(section.id)}"
+            aria-expanded="${collapsed ? "false" : "true"}"
+          >
+            <span class="section-title">${escapeHtml(section.title)}</span>
+            <span class="section-caret ${collapsed ? "is-collapsed" : ""}" aria-hidden="true"></span>
+          </button>
+          <button
+            class="section-action-btn"
+            type="button"
+            data-group-action="removeGroup"
+            data-group-id="${escapeHtml(section.id)}"
+            title="Remove ${escapeHtml(section.title)} group"
+            aria-label="Remove ${escapeHtml(section.title)} group"
+          >
+            ${cardIcon("trash")}
+          </button>
+        </div>
         ${collapsed
           ? ""
           : section.projects.length > 0
@@ -315,6 +332,12 @@
       return;
     }
 
+    const groupActionButton = target.closest("[data-group-action]");
+    if (groupActionButton) {
+      postGroupAction(groupActionButton);
+      return;
+    }
+
     const groupToggle = target.closest("[data-group-toggle]");
     if (groupToggle) {
       const groupId = groupToggle.getAttribute("data-group-toggle");
@@ -353,6 +376,17 @@
     }
 
     vscode.postMessage({ type, projectId, ...(newWindow ? { newWindow: true } : {}) });
+  }
+
+  function postGroupAction(element) {
+    const type = element.getAttribute("data-group-action");
+    const groupId = element.getAttribute("data-group-id");
+
+    if (!type || !groupId) {
+      return;
+    }
+
+    vscode.postMessage({ type, groupId });
   }
 
   function handleAppInput(event) {
@@ -429,6 +463,8 @@
     switch (name) {
       case "new-window":
         return `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9.5 2.5h4v4"/><path d="M13.5 2.5 8 8"/><path d="M7 3H3a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V9"/></svg>`;
+      case "trash":
+        return `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 4.5h9"/><path d="M6 2.5h4"/><path d="M5 4.5v8"/><path d="M11 4.5v8"/><path d="M4.5 4.5l.5 9h6l.5-9"/></svg>`;
       default:
         return "";
     }

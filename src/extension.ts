@@ -1,5 +1,6 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
+import { resolveProjectGroupId } from "./core/commandContext";
 import { ProjectStore, ProjectStorageAdapter, SaveProjectInput, StoreState, StoredProject } from "./core/projectStore";
 import { ProjectSwitchService } from "./core/projectSwitchService";
 import { normalizeSectionVisibility, SectionVisibility } from "./core/viewSections";
@@ -28,6 +29,7 @@ const COMMANDS = {
   openProjectInNewWindow: "projectSwitcher.openProjectInNewWindow",
   renameProject: "projectSwitcher.renameProject",
   removeProject: "projectSwitcher.removeProject",
+  removeGroup: "projectSwitcher.removeProjectGroup",
   togglePinProject: "projectSwitcher.togglePinProject",
   pinProject: "projectSwitcher.pinProject",
   unpinProject: "projectSwitcher.unpinProject",
@@ -207,6 +209,26 @@ export function activate(context: vscode.ExtensionContext): void {
       }
     },
 
+    removeProjectGroup: async (groupId: string) => {
+      const group = store.getAllGroups().find((item) => item.id === groupId);
+      if (!group) {
+        viewProvider.showError("Project group not found");
+        return;
+      }
+
+      const removeChoice = "Remove";
+      const choice = await vscode.window.showWarningMessage(
+        `Remove ${group.name} project group?`,
+        { modal: true },
+        removeChoice
+      );
+      if (choice !== removeChoice) {
+        return;
+      }
+
+      store.removeGroup(groupId);
+    },
+
     openProject: async (projectId: string, newWindow?: boolean) => {
       const project = store.getProject(projectId);
       if (!project) {
@@ -375,6 +397,15 @@ export function activate(context: vscode.ExtensionContext): void {
     }
 
     await actions.removeProject(id);
+  });
+
+  register(COMMANDS.removeGroup, async (groupContext?: unknown) => {
+    const id = resolveProjectGroupId(groupContext) ?? (await pickGroupId(store, "Remove project group"));
+    if (!id) {
+      return;
+    }
+
+    await actions.removeProjectGroup(id);
   });
 
   register(COMMANDS.togglePinProject, async (projectContext?: unknown) => {
@@ -547,6 +578,25 @@ async function pickProjectId(store: ProjectStore, placeHolder: string): Promise<
   );
 
   return selected?.project.id;
+}
+
+async function pickGroupId(store: ProjectStore, placeHolder: string): Promise<string | undefined> {
+  const groups = store.getAllGroups();
+  if (groups.length === 0) {
+    await vscode.window.showInformationMessage("No saved project groups.");
+    return undefined;
+  }
+
+  const selected = await vscode.window.showQuickPick(
+    groups.map((group) => ({
+      label: group.name,
+      description: compactPath(group.rootUri),
+      group
+    })),
+    { placeHolder }
+  );
+
+  return selected?.group.id;
 }
 
 function compactPath(uriString: string): string {

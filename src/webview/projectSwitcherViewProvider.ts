@@ -14,6 +14,7 @@ export interface ProjectSwitcherActions {
   addWorkspaceProject(): Promise<void>;
   addProjectGroup(): Promise<void>;
   toggleGroupCollapsed(groupId: string): Promise<void>;
+  removeProjectGroup(groupId: string): Promise<void>;
   openProject(projectId: string, newWindow?: boolean): Promise<void>;
   openProjectUri(uri: string, newWindow?: boolean): Promise<void>;
   renameProject(projectId: string): Promise<void>;
@@ -66,6 +67,7 @@ type IncomingMessage =
   | { type: "addWorkspace" }
   | { type: "addGroup" }
   | { type: "toggleGroupCollapsed"; groupId: string }
+  | { type: "removeGroup"; groupId: string }
   | { type: "refresh" }
   | { type: "openProject"; projectId: string; newWindow?: boolean }
   | { type: "renameProject"; projectId: string }
@@ -177,6 +179,9 @@ export class ProjectSwitcherViewProvider implements vscode.WebviewViewProvider, 
         return;
       case "toggleGroupCollapsed":
         await this.actions.toggleGroupCollapsed(message.groupId);
+        return;
+      case "removeGroup":
+        await this.actions.removeProjectGroup(message.groupId);
         return;
       case "refresh":
         this.actions.refresh();

@@ -18,7 +18,8 @@
     "onCommand:projectSwitcher.addProject",
     "onCommand:projectSwitcher.addFolderProject",
     "onCommand:projectSwitcher.addWorkspaceProject",
-    "onCommand:projectSwitcher.addProjectGroup"
+    "onCommand:projectSwitcher.addProjectGroup",
+    "onCommand:projectSwitcher.removeProjectGroup"
   ],
   "contributes": {
     "commands": [
@@ -85,6 +86,11 @@
         "category": "Project Switcher"
       },
       {
+        "command": "projectSwitcher.removeProjectGroup",
+        "title": "Remove Group",
+        "category": "Project Switcher"
+      },
+      {
         "command": "projectSwitcher.togglePinProject",
         "title": "Project Switcher: Toggle Pin",
         "category": "Project Switcher"
@@ -106,27 +112,27 @@
       },
       {
         "command": "projectSwitcher.toggleCurrentSection",
-        "title": "Show Current Project",
+        "title": "Current",
         "category": "Project Switcher"
       },
       {
         "command": "projectSwitcher.toggleRecentSection",
-        "title": "Show Recent",
+        "title": "Recent",
         "category": "Project Switcher"
       },
       {
         "command": "projectSwitcher.togglePinnedSection",
-        "title": "Show Pinned",
+        "title": "Favorites",
         "category": "Project Switcher"
       },
       {
         "command": "projectSwitcher.toggleProjectsSection",
-        "title": "Show Projects",
+        "title": "Projects",
         "category": "Project Switcher"
       },
       {
         "command": "projectSwitcher.toggleGroupsSection",
-        "title": "Show Project Groups",
+        "title": "Groups",
         "category": "Project Switcher"
       }
     ],
@@ -200,6 +206,11 @@
         {
           "command": "projectSwitcher.removeProject",
           "when": "webviewId == 'projectSwitcher.main' && webviewSection == 'projectCard' && projectVirtual != true",
+          "group": "3_danger@1"
+        },
+        {
+          "command": "projectSwitcher.removeProjectGroup",
+          "when": "webviewId == 'projectSwitcher.main' && webviewSection == 'projectGroupSection'",
           "group": "3_danger@1"
         },
         {

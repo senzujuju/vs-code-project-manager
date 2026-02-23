@@ -35,6 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProjectSwitchService = void 0;
 const vscode = __importStar(require("vscode"));
+const recentSwitch_1 = require("./recentSwitch");
 class ProjectSwitchService {
     store;
     constructor(store) {
@@ -49,12 +50,38 @@ class ProjectSwitchService {
             await vscode.window.showErrorMessage(`Invalid project URI: ${project.uri}`);
             return;
         }
-        this.store.markOpened(project.id);
         const openInNewWindow = forceNewWindow ??
             vscode.workspace.getConfiguration("projectSwitcher").get("openInNewWindow", false);
+        const currentProjectId = openInNewWindow ? undefined : this.getCurrentProjectId();
+        const markOpenedIds = (0, recentSwitch_1.getProjectIdsToMarkOpened)({
+            targetProjectId: project.id,
+            currentProjectId,
+            openInNewWindow
+        });
+        for (const projectId of markOpenedIds) {
+            this.store.markOpened(projectId);
+        }
         await vscode.commands.executeCommand("vscode.openFolder", targetUri, {
             forceNewWindow: openInNewWindow
         });
     }
+    getCurrentProjectId() {
+        const currentUri = getCurrentWorkspaceUri();
+        if (!currentUri) {
+            return undefined;
+        }
+        const project = this.store.getProjectByUri(currentUri);
+        return project?.id;
+    }
 }
 exports.ProjectSwitchService = ProjectSwitchService;
+function getCurrentWorkspaceUri() {
+    if (vscode.workspace.workspaceFile) {
+        return vscode.workspace.workspaceFile.toString();
+    }
+    const folders = vscode.workspace.workspaceFolders;
+    if (!folders || folders.length !== 1) {
+        return undefined;
+    }
+    return folders[0].uri.toString();
+}
