@@ -315,6 +315,32 @@ body {
 	text-overflow: ellipsis;
 }
 
+.branch {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	font-size: 11px;
+	line-height: 1.35;
+	color: var(--vscode-disabledForeground, var(--vscode-descriptionForeground));
+	white-space: nowrap;
+	overflow: hidden;
+	min-width: 0;
+}
+
+.branch svg {
+	width: 12px;
+	height: 12px;
+	flex-shrink: 0;
+	opacity: 0.8;
+}
+
+.branch-name {
+	display: block;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
 .project-type {
 	display: inline-block;
 	margin-top: 2px;

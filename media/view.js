@@ -344,6 +344,7 @@
           ${badge}
           <span class="meta">
             <span class="name">${currentProjectDot}<span class="name-label">${escapeHtml(project.name)}</span></span>
+            ${project.branch ? `<span class="branch">${cardIcon("git-branch")}<span class="branch-name">${escapeHtml(project.branch)}</span></span>` : ""}
             <span class="path" data-full-path="${escapeHtml(project.fullPath)}">${escapeHtml(project.displayPath)}</span>
           </span>
         </button>
@@ -538,6 +539,8 @@
     switch (name) {
       case "new-window":
         return `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9.5 2.5h4v4"/><path d="M13.5 2.5 8 8"/><path d="M7 3H3a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V9"/></svg>`;
+      case "git-branch":
+        return `<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M9.5 3.5a2 2 0 0 0-4 0 2 2 0 0 0 1.5 1.937V7a2 2 0 0 1-2 2H4a2 2 0 0 0-1.5 1.937 2 2 0 1 0 1 0V9.5a1 1 0 0 1 1-1h1a3 3 0 0 0 3-3V5.437A2 2 0 0 0 9.5 3.5zm-5 7a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm5-8a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/></svg>`;
       default:
         return "";
     }
