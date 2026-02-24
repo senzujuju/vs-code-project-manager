@@ -13,6 +13,7 @@ export interface OpenWindowSessionRecord {
   workspaceUri?: string;
   focused: boolean;
   updatedAt: number;
+  badgeColor?: string;
 }
 
 export interface OpenWindowRegistryOptions {
@@ -75,6 +76,7 @@ export class OpenWindowRegistry {
   private readonly listeners = new Set<() => void>();
   private readonly sessionId: string;
   private workspaceUri?: string;
+  private badgeColor?: string;
   private focused = false;
   private heartbeatMs = DEFAULT_OPEN_WINDOW_HEARTBEAT_MS;
   private watcher?: fs.FSWatcher;
@@ -130,6 +132,16 @@ export class OpenWindowRegistry {
     this.schedulePersistSession();
   }
 
+  setBadgeColor(badgeColor: string | undefined): void {
+    const normalized = normalizeBadgeColorValue(badgeColor);
+    if (normalized === this.badgeColor) {
+      return;
+    }
+
+    this.badgeColor = normalized;
+    this.schedulePersistSession();
+  }
+
   refresh(): void {
     this.scheduleEmitDidChange();
   }
@@ -141,6 +153,10 @@ export class OpenWindowRegistry {
       now: this.now(),
       staleAfterMs: this.staleAfterMs
     });
+  }
+
+  getOpenElsewhereSnapshots(): OpenWindowSessionRecord[] {
+    return this.readSessionRecords();
   }
 
   dispose(): void {
@@ -196,7 +212,8 @@ export class OpenWindowRegistry {
       sessionId: this.sessionId,
       workspaceUri: this.workspaceUri,
       focused: this.focused,
-      updatedAt: this.now()
+      updatedAt: this.now(),
+      badgeColor: this.badgeColor
     };
 
     try {
@@ -311,7 +328,8 @@ export class OpenWindowRegistry {
         sessionId: parsed.sessionId,
         workspaceUri: normalizeWorkspaceUri(parsed.workspaceUri),
         focused: Boolean(parsed.focused),
-        updatedAt: parsed.updatedAt
+        updatedAt: parsed.updatedAt,
+        badgeColor: normalizeBadgeColorValue(parsed.badgeColor)
       };
     } catch {
       return undefined;
@@ -355,4 +373,17 @@ function normalizeHeartbeatMs(heartbeatMs: unknown): number {
   }
 
   return heartbeatMs;
+}
+
+function normalizeBadgeColorValue(badgeColor: unknown): string | undefined {
+  if (typeof badgeColor !== "string") {
+    return undefined;
+  }
+
+  const normalized = badgeColor.trim();
+  if (normalized.length === 0) {
+    return undefined;
+  }
+
+  return normalized;
 }

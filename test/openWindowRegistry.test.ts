@@ -90,3 +90,30 @@ test("collectOpenElsewhereUris ignores sessions without valid workspace URI", ()
 
   assert.deepEqual(result, ["file:///work/valid"]);
 });
+
+test("collectOpenElsewhereUris includes badgeColor when present", () => {
+  const sessions: OpenWindowSessionRecord[] = [
+    {
+      sessionId: "other-1",
+      workspaceUri: "file:///work/api",
+      focused: false,
+      updatedAt: 1_000,
+      badgeColor: "#ff0000"
+    },
+    {
+      sessionId: "other-2",
+      workspaceUri: "file:///work/no-color",
+      focused: false,
+      updatedAt: 1_000
+    }
+  ];
+
+  const result = collectOpenElsewhereUris({
+    sessions,
+    currentSessionId: "self",
+    now: 1_000,
+    staleAfterMs: 120
+  });
+
+  assert.deepEqual(result, ["file:///work/api", "file:///work/no-color"]);
+});

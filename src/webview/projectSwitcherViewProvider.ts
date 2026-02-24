@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
+import { resolveOpenElsewhereState } from "../core/openElsewhereResolver";
 import { GroupChildFolder, resolveProjectGroupSections, ResolvedGroupProject } from "../core/projectGroups";
 import { ProjectGroup, ProjectStore, StoredProject } from "../core/projectStore";
 import { resolveWorkspaceBadgeColor } from "../core/workspaceBadgeColorSync";
@@ -305,11 +306,13 @@ export class ProjectSwitcherViewProvider implements vscode.WebviewViewProvider, 
 
     this.virtualProjectUriById.clear();
 
-    const groupSections = resolveProjectGroupSections({
+    const rawGroupSections = resolveProjectGroupSections({
       manualProjects: savedProjects,
       groups,
       listGroupChildren: (group) => this.listGroupChildren(group)
-    }).map((section) => {
+    });
+
+    const groupSections = rawGroupSections.map((section) => {
       return {
         id: section.id,
         title: section.title,
@@ -322,16 +325,62 @@ export class ProjectSwitcherViewProvider implements vscode.WebviewViewProvider, 
       };
     });
 
+    const resolverInput = {
+      savedProjects: savedProjects.map((p) => ({
+        id: p.id,
+        uri: p.uri,
+        pinned: p.pinned,
+        lastOpenedAt: p.lastOpenedAt
+      })),
+      groupSections: rawGroupSections.map((section) => ({
+        id: section.id,
+        title: section.title,
+        projects: section.projects.map((p) => ({ id: p.id, uri: p.uri }))
+      })),
+      openElsewhereUris: this.openElsewhereUris,
+      currentUri
+    };
+
+    const resolved = resolveOpenElsewhereState(resolverInput);
+
+    const openElsewhereIdSet = new Set(resolved.openElsewhere.map((p) => p.id));
+
+    const openElsewhereWebview: WebviewProject[] = [];
+    for (const item of resolved.openElsewhere) {
+      if (item.isVirtual) {
+        const rawSection = rawGroupSections.find((s) =>
+          s.projects.some((p) => p.id === item.id)
+        );
+        const rawProject = rawSection?.projects.find((p) => p.id === item.id);
+        if (rawProject) {
+          const webviewProject = mapResolvedGroupProjectToWebviewProject(
+            rawProject,
+            currentUri,
+            currentBadgeColor
+          );
+          this.virtualProjectUriById.set(webviewProject.id, webviewProject.uri);
+          openElsewhereWebview.push(webviewProject);
+        }
+      } else {
+        const saved = savedWebviewProjects.find((p) => p.id === item.id);
+        if (saved) {
+          openElsewhereWebview.push(saved);
+        }
+      }
+    }
+
     const groupedProjects = groupSections.flatMap((section) => section.projects);
 
     const current =
       savedWebviewProjects.find((item) => item.isCurrent) ?? groupedProjects.find((item) => item.isCurrent) ?? null;
-    const openElsewhere = savedWebviewProjects.filter((item) => !item.isCurrent && this.openElsewhereUris.has(item.uri));
-    const openElsewhereIds = new Set(openElsewhere.map((item) => item.id));
-    const restSaved = savedWebviewProjects.filter((item) => !item.isCurrent && !openElsewhereIds.has(item.id));
+
+    const restSaved = savedWebviewProjects.filter((item) => !item.isCurrent && !openElsewhereIdSet.has(item.id));
+
     const restGroups = groupSections.map((section) => ({
       ...section,
-      projects: section.projects.filter((item) => !item.isCurrent)
+      projects: section.projects.filter(
+        (item) => !item.isCurrent && !openElsewhereIdSet.has(item.id)
+      )
     }));
 
     const recent = selectRecentProjects(restSaved, 5);
@@ -341,7 +390,7 @@ export class ProjectSwitcherViewProvider implements vscode.WebviewViewProvider, 
 
     return {
       current: this.sectionVisibility.current ? current : null,
-      openElsewhere,
+      openElsewhere: openElsewhereWebview,
       recent: this.sectionVisibility.recent ? recent : [],
       pinned: this.sectionVisibility.pinned ? pinned : [],
       others: this.sectionVisibility.projects ? others : [],

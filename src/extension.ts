@@ -4,6 +4,7 @@ import { resolveProjectGroupId } from "./core/commandContext";
 import { OpenWindowRegistry } from "./core/openWindowRegistry";
 import { ProjectStore, ProjectStorageAdapter, SaveProjectInput, StoreState, StoredProject } from "./core/projectStore";
 import { ProjectSwitchService } from "./core/projectSwitchService";
+import { resolveWorkspaceBadgeColor } from "./core/workspaceBadgeColorSync";
 import {
   normalizeSectionCollapseState,
   normalizeSectionVisibility,
@@ -344,7 +345,28 @@ export function activate(context: vscode.ExtensionContext): void {
     viewProvider.setOpenElsewhereUris(activeOpenWindowRegistry.getOpenElsewhereUris());
   };
 
+  const syncCurrentBadgeColorToRegistry = () => {
+    const configuration = vscode.workspace.getConfiguration();
+    const badgeColor = resolveWorkspaceBadgeColor({
+      peacockColor: configuration.get("peacock.color"),
+      colorCustomizations: configuration.get("workbench.colorCustomizations")
+    });
+    activeOpenWindowRegistry.setBadgeColor(badgeColor);
+  };
+
+  const syncRemoteBadgeColorsToStore = () => {
+    const snapshots = activeOpenWindowRegistry.getOpenElsewhereSnapshots();
+    for (const snapshot of snapshots) {
+      if (!snapshot.workspaceUri || !snapshot.badgeColor) {
+        continue;
+      }
+
+      store.setBadgeColorByUri(snapshot.workspaceUri, snapshot.badgeColor);
+    }
+  };
+
   const unsubscribeOpenWindowRegistry = activeOpenWindowRegistry.onDidChange(() => {
+    syncRemoteBadgeColorsToStore();
     syncOpenElsewhere();
   });
 
@@ -354,6 +376,8 @@ export function activate(context: vscode.ExtensionContext): void {
     heartbeatMs: OPEN_WINDOW_HEARTBEAT_MS
   });
 
+  syncCurrentBadgeColorToRegistry();
+  syncRemoteBadgeColorsToStore();
   syncOpenElsewhere();
 
   const setSectionVisibility = (next: SectionVisibility) => {
@@ -390,6 +414,14 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.workspace.onDidChangeWorkspaceFolders(() => {
       activeOpenWindowRegistry.setWorkspaceUri(getCurrentWorkspaceUri());
       activeOpenWindowRegistry.refresh();
+    }),
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (
+        event.affectsConfiguration("peacock.color") ||
+        event.affectsConfiguration("workbench.colorCustomizations")
+      ) {
+        syncCurrentBadgeColorToRegistry();
+      }
     })
   );
 
