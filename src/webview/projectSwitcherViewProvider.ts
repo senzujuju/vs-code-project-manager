@@ -22,6 +22,7 @@ export interface ProjectSwitcherActions {
   addFolderProject(): Promise<void>;
   addWorkspaceProject(): Promise<void>;
   addProjectGroup(): Promise<void>;
+  cloneProject(): Promise<void>;
   toggleSectionCollapsed(section: keyof SectionCollapseState): Promise<void>;
   toggleGroupCollapsed(groupId: string): Promise<void>;
   removeProjectGroup(groupId: string): Promise<void>;
@@ -78,6 +79,7 @@ type IncomingMessage =
   | { type: "addFolder" }
   | { type: "addWorkspace" }
   | { type: "addGroup" }
+  | { type: "cloneProject" }
   | { type: "toggleSectionCollapsed"; section: keyof SectionCollapseState }
   | { type: "toggleGroupCollapsed"; groupId: string }
   | { type: "removeGroup"; groupId: string }
@@ -221,6 +223,9 @@ export class ProjectSwitcherViewProvider implements vscode.WebviewViewProvider, 
         return;
       case "addGroup":
         await this.actions.addProjectGroup();
+        return;
+      case "cloneProject":
+        await this.actions.cloneProject();
         return;
       case "toggleSectionCollapsed":
         await this.actions.toggleSectionCollapsed(message.section);

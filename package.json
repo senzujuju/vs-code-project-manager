@@ -21,6 +21,7 @@
 		"onCommand:projectSwitcher.addFolderProject",
 		"onCommand:projectSwitcher.addWorkspaceProject",
 		"onCommand:projectSwitcher.addProjectGroup",
+		"onCommand:projectSwitcher.cloneProject",
 		"onCommand:projectSwitcher.removeProjectGroup"
 	],
 	"contributes": {
@@ -66,6 +67,12 @@
 				"title": "Project Switcher: Add Project Group",
 				"category": "Project Switcher",
 				"icon": "$(folder)"
+			},
+			{
+				"command": "projectSwitcher.cloneProject",
+				"title": "Project Switcher: Clone Repository",
+				"category": "Project Switcher",
+				"icon": "$(repo)"
 			},
 			{
 				"command": "projectSwitcher.refresh",

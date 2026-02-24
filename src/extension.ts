@@ -1,6 +1,7 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { resolveProjectGroupId } from "./core/commandContext";
+import { cloneWithGitExtension, extractRepoNameFromUrl } from "./core/gitClone";
 import { OpenWindowRegistry } from "./core/openWindowRegistry";
 import { ProjectStore, ProjectStorageAdapter, SaveProjectInput, StoreState, StoredProject } from "./core/projectStore";
 import { ProjectSwitchService } from "./core/projectSwitchService";
@@ -34,6 +35,7 @@ const COMMANDS = {
   addFolder: "projectSwitcher.addFolderProject",
   addWorkspace: "projectSwitcher.addWorkspaceProject",
   addGroup: "projectSwitcher.addProjectGroup",
+  cloneProject: "projectSwitcher.cloneProject",
   refresh: "projectSwitcher.refresh",
   openProject: "projectSwitcher.openProject",
   openProjectInNewWindow: "projectSwitcher.openProjectInNewWindow",
@@ -110,6 +112,11 @@ export function activate(context: vscode.ExtensionContext): void {
             label: "$(folder) Project Group",
             description: "Use direct child folders as projects",
             projectKind: "group" as const
+          },
+          {
+            label: "$(repo) Clone Repository",
+            description: "Clone a Git repository and add as project",
+            projectKind: "clone" as const
           }
         ],
         {
@@ -128,6 +135,11 @@ export function activate(context: vscode.ExtensionContext): void {
 
       if (selected.projectKind === "group") {
         await actions.addProjectGroup();
+        return;
+      }
+
+      if (selected.projectKind === "clone") {
+        await actions.cloneProject();
         return;
       }
 
@@ -212,6 +224,68 @@ export function activate(context: vscode.ExtensionContext): void {
         name,
         rootUri: groupUri.toString()
       });
+    },
+
+    cloneProject: async () => {
+      const repoUrl = await vscode.window.showInputBox({
+        title: "Clone Repository",
+        prompt: "Enter repository URL",
+        placeHolder: "https://github.com/owner/repo",
+        validateInput: (value) => {
+          const trimmed = value.trim();
+          if (!trimmed) {
+            return "Repository URL is required";
+          }
+          return null;
+        }
+      });
+
+      if (!repoUrl) {
+        return;
+      }
+
+      const parentFolder = await vscode.window.showOpenDialog({
+        canSelectFiles: false,
+        canSelectFolders: true,
+        canSelectMany: false,
+        openLabel: "Select Parent Folder"
+      });
+
+      if (!parentFolder || parentFolder.length === 0) {
+        return;
+      }
+
+      const parentUri = parentFolder[0];
+      const defaultName = extractRepoNameFromUrl(repoUrl);
+      const projectName = await askProjectName("Project name", defaultName);
+
+      if (!projectName) {
+        return;
+      }
+
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: `Cloning ${defaultName}...`,
+          cancellable: false
+        },
+        async () => {
+          const result = await cloneWithGitExtension(repoUrl, parentUri);
+
+          if (!result.success) {
+            void vscode.window.showErrorMessage(result.error || "Failed to clone repository");
+            return;
+          }
+
+          store.saveProject({
+            name: projectName,
+            kind: "folder",
+            uri: result.uri!.toString()
+          });
+
+          void vscode.window.showInformationMessage(`Cloned and added "${projectName}" to projects.`);
+        }
+      );
     },
 
     toggleSectionCollapsed: async (section: keyof SectionCollapseState) => {
@@ -456,6 +530,10 @@ export function activate(context: vscode.ExtensionContext): void {
 
   register(COMMANDS.addGroup, async () => {
     await actions.addProjectGroup();
+  });
+
+  register(COMMANDS.cloneProject, async () => {
+    await actions.cloneProject();
   });
 
   register(COMMANDS.refresh, () => {
