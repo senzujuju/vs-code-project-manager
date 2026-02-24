@@ -1,6 +1,7 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { resolveProjectGroupId } from "./core/commandContext";
+import { OpenWindowRegistry } from "./core/openWindowRegistry";
 import { ProjectStore, ProjectStorageAdapter, SaveProjectInput, StoreState, StoredProject } from "./core/projectStore";
 import { ProjectSwitchService } from "./core/projectSwitchService";
 import {
@@ -14,6 +15,7 @@ import { ProjectSwitcherActions, ProjectSwitcherViewProvider } from "./webview/p
 const STORAGE_KEY = "projectSwitcher.state";
 const SECTION_VISIBILITY_STORAGE_KEY = "projectSwitcher.sectionVisibility";
 const SECTION_COLLAPSE_STORAGE_KEY = "projectSwitcher.sectionCollapseState";
+const OPEN_WINDOW_HEARTBEAT_MS = 30_000;
 
 const SECTION_VISIBILITY_CONTEXT = {
   current: "projectSwitcher.sectionVisible.current",
@@ -25,6 +27,7 @@ const SECTION_VISIBILITY_CONTEXT = {
 
 const COMMANDS = {
   focus: "projectSwitcher.focus",
+  focusSearch: "projectSwitcher.focusSearch",
   saveCurrent: "projectSwitcher.saveCurrentProject",
   addProject: "projectSwitcher.addProject",
   addFolder: "projectSwitcher.addFolderProject",
@@ -67,6 +70,7 @@ export function activate(context: vscode.ExtensionContext): void {
   applySectionVisibilityContext(sectionVisibility);
 
   let viewProvider: ProjectSwitcherViewProvider;
+  let openWindowRegistry: OpenWindowRegistry | undefined;
 
   const actions: ProjectSwitcherActions = {
     saveCurrentProject: async () => {
@@ -318,6 +322,7 @@ export function activate(context: vscode.ExtensionContext): void {
     },
 
     refresh: () => {
+      openWindowRegistry?.refresh();
       viewProvider.refresh();
     }
   };
@@ -329,6 +334,27 @@ export function activate(context: vscode.ExtensionContext): void {
     sectionVisibility,
     sectionCollapseState
   );
+
+  openWindowRegistry = new OpenWindowRegistry({
+    sessionsDirectoryPath: path.join(context.globalStorageUri.fsPath, "open-window-sessions")
+  });
+  const activeOpenWindowRegistry = openWindowRegistry;
+
+  const syncOpenElsewhere = () => {
+    viewProvider.setOpenElsewhereUris(activeOpenWindowRegistry.getOpenElsewhereUris());
+  };
+
+  const unsubscribeOpenWindowRegistry = activeOpenWindowRegistry.onDidChange(() => {
+    syncOpenElsewhere();
+  });
+
+  activeOpenWindowRegistry.start({
+    workspaceUri: getCurrentWorkspaceUri(),
+    focused: vscode.window.state.focused,
+    heartbeatMs: OPEN_WINDOW_HEARTBEAT_MS
+  });
+
+  syncOpenElsewhere();
 
   const setSectionVisibility = (next: SectionVisibility) => {
     sectionVisibility = next;
@@ -345,11 +371,25 @@ export function activate(context: vscode.ExtensionContext): void {
   };
 
   context.subscriptions.push(
+    activeOpenWindowRegistry,
+    {
+      dispose: unsubscribeOpenWindowRegistry
+    },
     viewProvider,
     vscode.window.registerWebviewViewProvider(ProjectSwitcherViewProvider.viewType, viewProvider, {
       webviewOptions: {
         retainContextWhenHidden: true
       }
+    }),
+    vscode.window.onDidChangeWindowState((state) => {
+      activeOpenWindowRegistry.setFocused(state.focused);
+      if (state.focused) {
+        activeOpenWindowRegistry.refresh();
+      }
+    }),
+    vscode.workspace.onDidChangeWorkspaceFolders(() => {
+      activeOpenWindowRegistry.setWorkspaceUri(getCurrentWorkspaceUri());
+      activeOpenWindowRegistry.refresh();
     })
   );
 
@@ -359,6 +399,11 @@ export function activate(context: vscode.ExtensionContext): void {
 
   register(COMMANDS.focus, async () => {
     await focusView(viewProvider);
+  });
+
+  register(COMMANDS.focusSearch, async () => {
+    await focusView(viewProvider);
+    viewProvider.focusSearch();
   });
 
   register(COMMANDS.saveCurrent, async () => {
@@ -567,6 +612,19 @@ function getCurrentProjectInput(): SaveProjectInput & { defaultName: string } | 
     kind: "folder",
     uri: folder.uri.toString()
   };
+}
+
+function getCurrentWorkspaceUri(): string | undefined {
+  if (vscode.workspace.workspaceFile) {
+    return vscode.workspace.workspaceFile.toString();
+  }
+
+  const folders = vscode.workspace.workspaceFolders;
+  if (!folders || folders.length !== 1) {
+    return undefined;
+  }
+
+  return folders[0].uri.toString();
 }
 
 function resolveProjectId(value: unknown): string | undefined {

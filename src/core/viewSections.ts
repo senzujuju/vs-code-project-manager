@@ -11,6 +11,7 @@ export interface SectionCollapseState {
   recent: boolean;
   pinned: boolean;
   projects: boolean;
+  openElsewhere: boolean;
 }
 
 export const DEFAULT_SECTION_VISIBILITY: SectionVisibility = {
@@ -25,7 +26,8 @@ export const DEFAULT_SECTION_COLLAPSE_STATE: SectionCollapseState = {
   current: false,
   recent: false,
   pinned: false,
-  projects: false
+  projects: false,
+  openElsewhere: false
 };
 
 type RecentCandidate = {
@@ -63,7 +65,11 @@ export function normalizeSectionCollapseState(value: unknown): SectionCollapseSt
     recent: typeof input.recent === "boolean" ? input.recent : DEFAULT_SECTION_COLLAPSE_STATE.recent,
     pinned: typeof input.pinned === "boolean" ? input.pinned : DEFAULT_SECTION_COLLAPSE_STATE.pinned,
     projects:
-      typeof input.projects === "boolean" ? input.projects : DEFAULT_SECTION_COLLAPSE_STATE.projects
+      typeof input.projects === "boolean" ? input.projects : DEFAULT_SECTION_COLLAPSE_STATE.projects,
+    openElsewhere:
+      typeof input.openElsewhere === "boolean"
+        ? input.openElsewhere
+        : DEFAULT_SECTION_COLLAPSE_STATE.openElsewhere
   };
 }
 

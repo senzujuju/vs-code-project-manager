@@ -5,11 +5,13 @@
     current: false,
     recent: false,
     pinned: false,
-    projects: false
+    projects: false,
+    openElsewhere: false
   };
 
   let state = {
     current: null,
+    openElsewhere: [],
     recent: [],
     pinned: [],
     others: [],
@@ -39,6 +41,15 @@
     if (message && message.type === "error") {
       errorMessage = String(message.message || "Unexpected error");
       render();
+      return;
+    }
+
+    if (message && message.type === "focusSearch") {
+      render({
+        focusSearch: true,
+        selectionStart: 0,
+        selectionEnd: searchQuery.length
+      });
     }
   });
 
@@ -48,6 +59,7 @@
     const selectionEnd = options && typeof options.selectionEnd === "number" ? options.selectionEnd : selectionStart;
 
     const filteredCurrent = state.current && matchesSearch(state.current) ? state.current : null;
+    const filteredOpenElsewhere = filterProjects(state.openElsewhere);
     const filteredRecent = filterProjects(state.recent);
     const filteredPinned = filterProjects(state.pinned);
     const filteredOthers = filterProjects(state.others);
@@ -63,12 +75,14 @@
 
     const rawTotal =
       (state.current ? 1 : 0) +
+      state.openElsewhere.length +
       state.recent.length +
       state.pinned.length +
       state.others.length +
       state.groups.reduce((sum, section) => sum + section.projects.length, 0);
     const total =
       (filteredCurrent ? 1 : 0) +
+      filteredOpenElsewhere.length +
       filteredRecent.length +
       filteredPinned.length +
       filteredOthers.length +
@@ -83,6 +97,7 @@
         : "No projects match your search.";
 
     const hasSectionsAfterCurrent =
+      filteredOpenElsewhere.length > 0 ||
       filteredRecent.length > 0 ||
       filteredPinned.length > 0 ||
       filteredOthers.length > 0 ||
@@ -107,6 +122,7 @@
         ${total === 0 ? `<div class="empty">${emptyMessage}</div>` : ""}
         ${sectionTemplate("current", "Current project", filteredCurrent ? [filteredCurrent] : [], forceExpanded)}
         ${filteredCurrent && hasSectionsAfterCurrent ? `<div class="divider"></div>` : ""}
+        ${sectionTemplate("openElsewhere", "Open in other windows", filteredOpenElsewhere, forceExpanded)}
         ${sectionTemplate("recent", "Recent", filteredRecent, forceExpanded)}
         ${sectionTemplate("pinned", "Favorites", filteredPinned, forceExpanded)}
         ${sectionTemplate("projects", "Projects", filteredOthers, forceExpanded)}
@@ -132,6 +148,7 @@
         ? payload
         : {
             current: null,
+            openElsewhere: [],
             recent: [],
             pinned: [],
             others: [],
@@ -139,6 +156,7 @@
             sectionCollapseState: { ...DEFAULT_SECTION_COLLAPSE_STATE }
           };
     const recent = Array.isArray(nextState.recent) ? nextState.recent : [];
+    const openElsewhere = Array.isArray(nextState.openElsewhere) ? nextState.openElsewhere : [];
     const groups = Array.isArray(nextState.groups) ? nextState.groups : [];
     const sectionCollapseState = normalizeSectionCollapseState(nextState.sectionCollapseState);
 
@@ -169,6 +187,7 @@
 
     return {
       ...nextState,
+      openElsewhere,
       recent,
       groups: mergedGroups,
       sectionCollapseState
@@ -187,12 +206,22 @@
       recent: typeof candidate.recent === "boolean" ? candidate.recent : DEFAULT_SECTION_COLLAPSE_STATE.recent,
       pinned: typeof candidate.pinned === "boolean" ? candidate.pinned : DEFAULT_SECTION_COLLAPSE_STATE.pinned,
       projects:
-        typeof candidate.projects === "boolean" ? candidate.projects : DEFAULT_SECTION_COLLAPSE_STATE.projects
+        typeof candidate.projects === "boolean" ? candidate.projects : DEFAULT_SECTION_COLLAPSE_STATE.projects,
+      openElsewhere:
+        typeof candidate.openElsewhere === "boolean"
+          ? candidate.openElsewhere
+          : DEFAULT_SECTION_COLLAPSE_STATE.openElsewhere
     };
   }
 
   function isCollapsibleSection(section) {
-    return section === "current" || section === "recent" || section === "pinned" || section === "projects";
+    return (
+      section === "current" ||
+      section === "openElsewhere" ||
+      section === "recent" ||
+      section === "pinned" ||
+      section === "projects"
+    );
   }
 
   function filterProjects(projects) {

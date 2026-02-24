@@ -12,6 +12,8 @@ body {
   font-family: var(--vscode-font-family);
   color: var(--vscode-foreground);
   background: var(--vscode-sideBar-background);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 .container {
@@ -24,7 +26,7 @@ body {
   position: relative;
   display: flex;
   align-items: center;
-  margin-bottom: 2px;
+  margin-bottom: 6px;
 }
 
 .search-icon {
@@ -81,7 +83,7 @@ body {
 
 .divider {
   height: 1px;
-  background: color-mix(in srgb, var(--vscode-descriptionForeground) 38%, transparent);
+  background: var(--vscode-panel-border);
   margin: 2px 0;
 }
 
@@ -96,7 +98,7 @@ body {
   padding: 2px 0;
   font-size: 10px;
   font-weight: 700;
-  color: var(--vscode-descriptionForeground);
+  color: var(--vscode-sideBarTitle-foreground, var(--vscode-sideBarSectionHeader-foreground, var(--vscode-descriptionForeground)));
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -133,8 +135,10 @@ body {
 .section-caret {
   width: 8px;
   height: 8px;
-  border-right: 1.5px solid var(--vscode-descriptionForeground);
-  border-bottom: 1.5px solid var(--vscode-descriptionForeground);
+  border-right: 1.5px solid
+    var(--vscode-sideBarTitle-foreground, var(--vscode-sideBarSectionHeader-foreground, var(--vscode-descriptionForeground)));
+  border-bottom: 1.5px solid
+    var(--vscode-sideBarTitle-foreground, var(--vscode-sideBarSectionHeader-foreground, var(--vscode-descriptionForeground)));
   transform: rotate(45deg);
   transition: transform 100ms ease;
   margin-right: 2px;
@@ -190,32 +194,22 @@ body {
 .project-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0;
 }
 
 .project-card {
-  border: 1px solid color-mix(in srgb, var(--vscode-descriptionForeground) 38%, transparent);
-  border-radius: 9px;
-  background: color-mix(in srgb, var(--vscode-sideBar-background) 86%, var(--vscode-editor-background));
-  padding: 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  padding: 10px 8px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 4px;
+  gap: 6px;
   transition: background 100ms ease;
 }
 
-.project-card:not(.is-current):hover {
+.project-card:hover {
   background: var(--vscode-list-hoverBackground);
-}
-
-.project-card:not(.is-current):hover .name {
-  color: color-mix(in srgb, var(--vscode-foreground) 82%, white);
-}
-
-.project-card.is-current {
-  border-color: var(--vscode-button-background);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--vscode-button-background) 62%, transparent);
-  background: color-mix(in srgb, var(--vscode-sideBar-background) 90%, var(--vscode-button-background) 10%);
 }
 
 .project-open {
@@ -228,7 +222,7 @@ body {
   text-align: left;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 10px;
+  gap: 12px;
   align-items: start;
 }
 
@@ -316,13 +310,16 @@ body {
 
 .meta {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .name {
   display: block;
-  font-size: 12px;
+  font-size: 13px;
+  line-height: 1.3;
   color: var(--vscode-foreground);
-  margin-bottom: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -330,8 +327,9 @@ body {
 
 .path {
   display: block;
-  font-size: 10px;
-  color: var(--vscode-descriptionForeground);
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--vscode-disabledForeground, var(--vscode-descriptionForeground));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

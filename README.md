@@ -10,11 +10,13 @@ Webview-first project switcher for Visual Studio Code.
 - Add project from `.code-workspace` picker
 - Add project group from folder (direct child folders become projects)
 - Open, rename, remove, pin/unpin saved projects
+- Show saved projects currently open in other VS Code windows
 - Status bar quick button to focus the switcher
 
 ## Commands
 
 - `Project Switcher: Focus`
+- `Project Switcher: Focus Search`
 - `Project Switcher: Save Current Project`
 - `Project Switcher: Add Project`
 - `Project Switcher: Add Folder`

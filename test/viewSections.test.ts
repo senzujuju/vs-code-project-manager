@@ -48,7 +48,8 @@ test("normalizeSectionCollapseState merges known flags", () => {
     current: true,
     recent: true,
     pinned: false,
-    projects: false
+    projects: false,
+    openElsewhere: false
   });
 });
 

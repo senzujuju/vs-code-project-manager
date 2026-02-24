@@ -56,6 +56,7 @@ interface WebviewGroupSection {
 
 interface WebviewState {
   current: WebviewProject | null;
+  openElsewhere: WebviewProject[];
   recent: WebviewProject[];
   pinned: WebviewProject[];
   others: WebviewProject[];
@@ -90,6 +91,7 @@ export class ProjectSwitcherViewProvider implements vscode.WebviewViewProvider, 
   private readonly disposables: vscode.Disposable[] = [];
   private readonly virtualProjectUriById = new Map<string, string>();
   private readonly groupChildrenCache = new Map<string, GroupChildrenCacheEntry>();
+  private openElsewhereUris = new Set<string>();
   private sectionVisibility: SectionVisibility;
   private sectionCollapseState: SectionCollapseState;
   private view?: vscode.WebviewView;
@@ -162,6 +164,21 @@ export class ProjectSwitcherViewProvider implements vscode.WebviewViewProvider, 
 
   reveal(): Thenable<void> {
     return vscode.commands.executeCommand(`${ProjectSwitcherViewProvider.viewType}.focus`);
+  }
+
+  focusSearch(): void {
+    this.view?.webview.postMessage({
+      type: "focusSearch"
+    });
+  }
+
+  setOpenElsewhereUris(uris: Iterable<string>): void {
+    this.openElsewhereUris = new Set(
+      Array.from(uris)
+        .map((uri) => uri.trim())
+        .filter((uri) => uri.length > 0)
+    );
+    this.postState();
   }
 
   showError(message: string): void {
@@ -303,7 +320,9 @@ export class ProjectSwitcherViewProvider implements vscode.WebviewViewProvider, 
 
     const current =
       savedWebviewProjects.find((item) => item.isCurrent) ?? groupedProjects.find((item) => item.isCurrent) ?? null;
-    const restSaved = savedWebviewProjects.filter((item) => !item.isCurrent);
+    const openElsewhere = savedWebviewProjects.filter((item) => !item.isCurrent && this.openElsewhereUris.has(item.uri));
+    const openElsewhereIds = new Set(openElsewhere.map((item) => item.id));
+    const restSaved = savedWebviewProjects.filter((item) => !item.isCurrent && !openElsewhereIds.has(item.id));
     const restGroups = groupSections.map((section) => ({
       ...section,
       projects: section.projects.filter((item) => !item.isCurrent)
@@ -316,6 +335,7 @@ export class ProjectSwitcherViewProvider implements vscode.WebviewViewProvider, 
 
     return {
       current: this.sectionVisibility.current ? current : null,
+      openElsewhere,
       recent: this.sectionVisibility.recent ? recent : [],
       pinned: this.sectionVisibility.pinned ? pinned : [],
       others: this.sectionVisibility.projects ? others : [],
