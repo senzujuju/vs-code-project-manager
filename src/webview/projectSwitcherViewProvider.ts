@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
+import { readGitBranchSync } from "../core/gitBranchReader";
 import { resolveOpenElsewhereState } from "../core/openElsewhereResolver";
 import { GroupChildFolder, resolveProjectGroupSections, ResolvedGroupProject } from "../core/projectGroups";
 import { ProjectGroup, ProjectStore, StoredProject } from "../core/projectStore";
@@ -49,6 +50,7 @@ interface WebviewProject {
   initials: string;
   badgeTone: number;
   badgeColorOverride?: string;
+  branch?: string;
 }
 
 interface WebviewGroupSection {
@@ -555,13 +557,14 @@ function mapStoredProjectToWebviewProject(
   currentBadgeColor: string | undefined
 ): WebviewProject {
   const isCurrent = currentUri === project.uri;
+  const fullPath = formatFullPath(project.uri);
 
   return {
     id: project.id,
     name: project.name,
     kind: project.kind,
     uri: project.uri,
-    fullPath: formatFullPath(project.uri),
+    fullPath,
     displayPath: formatPath(project.uri),
     pinned: project.pinned,
     isCurrent,
@@ -569,7 +572,8 @@ function mapStoredProjectToWebviewProject(
     lastOpenedAt: project.lastOpenedAt,
     initials: getInitials(project.name),
     badgeTone: getBadgeTone(project.id),
-    badgeColorOverride: isCurrent ? currentBadgeColor ?? project.badgeColor : project.badgeColor
+    badgeColorOverride: isCurrent ? currentBadgeColor ?? project.badgeColor : project.badgeColor,
+    branch: readGitBranchSync(fullPath) ?? undefined
   };
 }
 
@@ -579,13 +583,14 @@ function mapResolvedGroupProjectToWebviewProject(
   currentBadgeColor: string | undefined
 ): WebviewProject {
   const isCurrent = currentUri === project.uri;
+  const fullPath = formatFullPath(project.uri);
 
   return {
     id: project.id,
     name: project.name,
     kind: project.kind,
     uri: project.uri,
-    fullPath: formatFullPath(project.uri),
+    fullPath,
     displayPath: formatPath(project.uri),
     pinned: false,
     isCurrent,
@@ -593,7 +598,8 @@ function mapResolvedGroupProjectToWebviewProject(
     lastOpenedAt: undefined,
     initials: getInitials(project.name),
     badgeTone: getBadgeTone(project.id),
-    badgeColorOverride: isCurrent ? currentBadgeColor : undefined
+    badgeColorOverride: isCurrent ? currentBadgeColor : undefined,
+    branch: readGitBranchSync(fullPath) ?? undefined
   };
 }
 
