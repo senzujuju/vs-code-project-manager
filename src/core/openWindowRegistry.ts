@@ -14,6 +14,7 @@ export interface OpenWindowSessionRecord {
   focused: boolean;
   updatedAt: number;
   badgeColor?: string;
+  branch?: string;
 }
 
 export interface OpenWindowRegistryOptions {
@@ -77,6 +78,7 @@ export class OpenWindowRegistry {
   private readonly sessionId: string;
   private workspaceUri?: string;
   private badgeColor?: string;
+  private branch?: string;
   private focused = false;
   private heartbeatMs = DEFAULT_OPEN_WINDOW_HEARTBEAT_MS;
   private watcher?: fs.FSWatcher;
@@ -139,6 +141,16 @@ export class OpenWindowRegistry {
     }
 
     this.badgeColor = normalized;
+    this.schedulePersistSession();
+  }
+
+  setBranch(branch: string | undefined): void {
+    const normalized = normalizeBranchValue(branch);
+    if (normalized === this.branch) {
+      return;
+    }
+
+    this.branch = normalized;
     this.schedulePersistSession();
   }
 
@@ -213,7 +225,8 @@ export class OpenWindowRegistry {
       workspaceUri: this.workspaceUri,
       focused: this.focused,
       updatedAt: this.now(),
-      badgeColor: this.badgeColor
+      badgeColor: this.badgeColor,
+      branch: this.branch
     };
 
     try {
@@ -329,7 +342,8 @@ export class OpenWindowRegistry {
         workspaceUri: normalizeWorkspaceUri(parsed.workspaceUri),
         focused: Boolean(parsed.focused),
         updatedAt: parsed.updatedAt,
-        badgeColor: normalizeBadgeColorValue(parsed.badgeColor)
+        badgeColor: normalizeBadgeColorValue(parsed.badgeColor),
+        branch: normalizeBranchValue(parsed.branch)
       };
     } catch {
       return undefined;
@@ -386,4 +400,13 @@ function normalizeBadgeColorValue(badgeColor: unknown): string | undefined {
   }
 
   return normalized;
+}
+
+function normalizeBranchValue(branch: unknown): string | undefined {
+  if (typeof branch !== "string") {
+    return undefined;
+  }
+
+  const normalized = branch.trim();
+  return normalized.length > 0 ? normalized : undefined;
 }
