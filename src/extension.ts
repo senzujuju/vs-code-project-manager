@@ -1,6 +1,7 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { resolveProjectGroupId } from "./core/commandContext";
+import { readGitBranchSync } from "./core/gitBranchReader";
 import { cloneWithGitExtension, extractRepoNameFromUrl } from "./core/gitClone";
 import { OpenWindowRegistry } from "./core/openWindowRegistry";
 import { ProjectStore, ProjectStorageAdapter, SaveProjectInput, StoreState, StoredProject } from "./core/projectStore";
@@ -428,6 +429,39 @@ export function activate(context: vscode.ExtensionContext): void {
     activeOpenWindowRegistry.setBadgeColor(badgeColor);
   };
 
+  const syncCurrentBranchToRegistry = () => {
+    const folders = vscode.workspace.workspaceFolders;
+    if (vscode.workspace.workspaceFile || !folders || folders.length !== 1) {
+      return;
+    }
+    const branch = readGitBranchSync(folders[0].uri.fsPath);
+    activeOpenWindowRegistry.setBranch(branch ?? undefined);
+  };
+
+  const setupHeadWatcher = (): vscode.Disposable | undefined => {
+    const folders = vscode.workspace.workspaceFolders;
+    if (vscode.workspace.workspaceFile || !folders || folders.length !== 1) {
+      return undefined;
+    }
+
+    const watcher = vscode.workspace.createFileSystemWatcher(
+      new vscode.RelativePattern(folders[0].uri, ".git/HEAD")
+    );
+
+    const onHeadChange = () => {
+      syncCurrentBranchToRegistry();
+      viewProvider.refresh();
+    };
+
+    watcher.onDidChange(onHeadChange);
+    watcher.onDidCreate(onHeadChange);
+    watcher.onDidDelete(onHeadChange);
+
+    return watcher;
+  };
+
+  const headWatcher = setupHeadWatcher();
+
   const syncRemoteBadgeColorsToStore = () => {
     const snapshots = activeOpenWindowRegistry.getOpenElsewhereSnapshots();
     for (const snapshot of snapshots) {
@@ -451,6 +485,7 @@ export function activate(context: vscode.ExtensionContext): void {
   });
 
   syncCurrentBadgeColorToRegistry();
+  syncCurrentBranchToRegistry();
   syncRemoteBadgeColorsToStore();
   syncOpenElsewhere();
 
@@ -473,6 +508,7 @@ export function activate(context: vscode.ExtensionContext): void {
     {
       dispose: unsubscribeOpenWindowRegistry
     },
+    ...(headWatcher ? [headWatcher] : []),
     viewProvider,
     vscode.window.registerWebviewViewProvider(ProjectSwitcherViewProvider.viewType, viewProvider, {
       webviewOptions: {
