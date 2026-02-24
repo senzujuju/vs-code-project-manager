@@ -3,6 +3,7 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { GroupChildFolder, resolveProjectGroupSections, ResolvedGroupProject } from "../core/projectGroups";
 import { ProjectGroup, ProjectStore, StoredProject } from "../core/projectStore";
+import { resolveWorkspaceBadgeColor } from "../core/workspaceBadgeColorSync";
 import {
   DEFAULT_SECTION_COLLAPSE_STATE,
   DEFAULT_SECTION_VISIBILITY,
@@ -12,6 +13,7 @@ import {
 } from "../core/viewSections";
 
 const ENABLE_WORKSPACE_ACCENT_BADGE_COLOR = true;
+const WORKSPACE_BADGE_COLOR_SYNC_DEBOUNCE_MS = 250;
 
 export interface ProjectSwitcherActions {
   saveCurrentProject(): Promise<void>;
@@ -92,6 +94,7 @@ export class ProjectSwitcherViewProvider implements vscode.WebviewViewProvider, 
   private readonly virtualProjectUriById = new Map<string, string>();
   private readonly groupChildrenCache = new Map<string, GroupChildrenCacheEntry>();
   private openElsewhereUris = new Set<string>();
+  private workspaceBadgeColorSyncTimeout?: NodeJS.Timeout;
   private sectionVisibility: SectionVisibility;
   private sectionCollapseState: SectionCollapseState;
   private view?: vscode.WebviewView;
@@ -121,6 +124,7 @@ export class ProjectSwitcherViewProvider implements vscode.WebviewViewProvider, 
             event.affectsConfiguration("peacock.color") ||
             event.affectsConfiguration("workbench.colorCustomizations")
           ) {
+            this.scheduleCurrentWorkspaceBadgeColorSnapshotSync();
             this.postState();
           }
         })
@@ -145,6 +149,7 @@ export class ProjectSwitcherViewProvider implements vscode.WebviewViewProvider, 
     );
 
     this.postState();
+    this.scheduleCurrentWorkspaceBadgeColorSnapshotSync();
   }
 
   refresh(): void {
@@ -189,6 +194,11 @@ export class ProjectSwitcherViewProvider implements vscode.WebviewViewProvider, 
   }
 
   dispose(): void {
+    if (this.workspaceBadgeColorSyncTimeout) {
+      clearTimeout(this.workspaceBadgeColorSyncTimeout);
+      this.workspaceBadgeColorSyncTimeout = undefined;
+    }
+
     while (this.disposables.length > 0) {
       this.disposables.pop()?.dispose();
     }
@@ -273,10 +283,6 @@ export class ProjectSwitcherViewProvider implements vscode.WebviewViewProvider, 
 
   private postState(): void {
     if (!this.view) {
-      return;
-    }
-
-    if (this.syncCurrentWorkspaceBadgeColorSnapshot()) {
       return;
     }
 
@@ -380,17 +386,25 @@ export class ProjectSwitcherViewProvider implements vscode.WebviewViewProvider, 
     }
 
     const configuration = vscode.workspace.getConfiguration();
-    const peacockColor = normalizeBadgeColor(configuration.get("peacock.color"));
-    if (peacockColor) {
-      return peacockColor;
+    return resolveWorkspaceBadgeColor({
+      peacockColor: configuration.get("peacock.color"),
+      colorCustomizations: configuration.get("workbench.colorCustomizations")
+    });
+  }
+
+  private scheduleCurrentWorkspaceBadgeColorSnapshotSync(): void {
+    if (!ENABLE_WORKSPACE_ACCENT_BADGE_COLOR) {
+      return;
     }
 
-    const colorCustomizations = configuration.get<Record<string, unknown>>("workbench.colorCustomizations");
-    if (!colorCustomizations || typeof colorCustomizations !== "object") {
-      return undefined;
+    if (this.workspaceBadgeColorSyncTimeout) {
+      clearTimeout(this.workspaceBadgeColorSyncTimeout);
     }
 
-    return normalizeBadgeColor(colorCustomizations["activityBar.activeBackground"]);
+    this.workspaceBadgeColorSyncTimeout = setTimeout(() => {
+      this.workspaceBadgeColorSyncTimeout = undefined;
+      this.syncCurrentWorkspaceBadgeColorSnapshot();
+    }, WORKSPACE_BADGE_COLOR_SYNC_DEBOUNCE_MS);
   }
 
   private syncCurrentWorkspaceBadgeColorSnapshot(): boolean {
@@ -601,32 +615,6 @@ function getBadgeTone(seed: string): number {
   }
 
   return Math.abs(hash) % appleSystemColorCount;
-}
-
-function normalizeBadgeColor(value: unknown): string | undefined {
-  if (typeof value !== "string") {
-    return undefined;
-  }
-
-  const normalized = value.trim();
-
-  if (/^#[0-9a-fA-F]{3}$/.test(normalized)) {
-    return `#${normalized[1]}${normalized[1]}${normalized[2]}${normalized[2]}${normalized[3]}${normalized[3]}`.toLowerCase();
-  }
-
-  if (/^#[0-9a-fA-F]{4}$/.test(normalized)) {
-    return `#${normalized[1]}${normalized[1]}${normalized[2]}${normalized[2]}${normalized[3]}${normalized[3]}`.toLowerCase();
-  }
-
-  if (/^#[0-9a-fA-F]{6}$/.test(normalized)) {
-    return normalized.toLowerCase();
-  }
-
-  if (/^#[0-9a-fA-F]{8}$/.test(normalized)) {
-    return normalized.slice(0, 7).toLowerCase();
-  }
-
-  return undefined;
 }
 
 function getNonce(): string {

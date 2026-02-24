@@ -1,3 +1,5 @@
+import { normalizeBadgeColor } from "./workspaceBadgeColorSync";
+
 export type ProjectKind = "folder" | "workspace";
 
 export interface StoredProject {
@@ -90,28 +92,7 @@ function sanitizeRootUri(uri: string): string {
 }
 
 function sanitizeBadgeColor(color: unknown): string | undefined {
-  if (typeof color !== "string") {
-    return undefined;
-  }
-
-  const normalized = color.trim();
-  if (/^#[0-9a-fA-F]{3}$/.test(normalized)) {
-    return `#${normalized[1]}${normalized[1]}${normalized[2]}${normalized[2]}${normalized[3]}${normalized[3]}`.toLowerCase();
-  }
-
-  if (/^#[0-9a-fA-F]{4}$/.test(normalized)) {
-    return `#${normalized[1]}${normalized[1]}${normalized[2]}${normalized[2]}${normalized[3]}${normalized[3]}`.toLowerCase();
-  }
-
-  if (/^#[0-9a-fA-F]{6}$/.test(normalized)) {
-    return normalized.toLowerCase();
-  }
-
-  if (/^#[0-9a-fA-F]{8}$/.test(normalized)) {
-    return normalized.slice(0, 7).toLowerCase();
-  }
-
-  return undefined;
+  return normalizeBadgeColor(color);
 }
 
 function sanitizeProjects(projects: unknown): StoredProject[] {

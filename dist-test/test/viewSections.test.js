@@ -41,7 +41,8 @@ const viewSections_1 = require("../src/core/viewSections");
         current: true,
         recent: true,
         pinned: false,
-        projects: false
+        projects: false,
+        openElsewhere: false
     });
 });
 (0, node_test_1.default)("selectRecentProjects returns latest five non-pinned non-current projects", () => {

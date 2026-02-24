@@ -15,7 +15,8 @@ exports.DEFAULT_SECTION_COLLAPSE_STATE = {
     current: false,
     recent: false,
     pinned: false,
-    projects: false
+    projects: false,
+    openElsewhere: false
 };
 function normalizeSectionVisibility(value) {
     if (!value || typeof value !== "object") {
@@ -39,7 +40,10 @@ function normalizeSectionCollapseState(value) {
         current: typeof input.current === "boolean" ? input.current : exports.DEFAULT_SECTION_COLLAPSE_STATE.current,
         recent: typeof input.recent === "boolean" ? input.recent : exports.DEFAULT_SECTION_COLLAPSE_STATE.recent,
         pinned: typeof input.pinned === "boolean" ? input.pinned : exports.DEFAULT_SECTION_COLLAPSE_STATE.pinned,
-        projects: typeof input.projects === "boolean" ? input.projects : exports.DEFAULT_SECTION_COLLAPSE_STATE.projects
+        projects: typeof input.projects === "boolean" ? input.projects : exports.DEFAULT_SECTION_COLLAPSE_STATE.projects,
+        openElsewhere: typeof input.openElsewhere === "boolean"
+            ? input.openElsewhere
+            : exports.DEFAULT_SECTION_COLLAPSE_STATE.openElsewhere
     };
 }
 function selectRecentProjects(projects, limit) {

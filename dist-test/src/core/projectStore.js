@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProjectStore = void 0;
+const workspaceBadgeColorSync_1 = require("./workspaceBadgeColorSync");
 function createFallbackId() {
     return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
@@ -32,23 +33,7 @@ function sanitizeRootUri(uri) {
     return trimmed;
 }
 function sanitizeBadgeColor(color) {
-    if (typeof color !== "string") {
-        return undefined;
-    }
-    const normalized = color.trim();
-    if (/^#[0-9a-fA-F]{3}$/.test(normalized)) {
-        return `#${normalized[1]}${normalized[1]}${normalized[2]}${normalized[2]}${normalized[3]}${normalized[3]}`.toLowerCase();
-    }
-    if (/^#[0-9a-fA-F]{4}$/.test(normalized)) {
-        return `#${normalized[1]}${normalized[1]}${normalized[2]}${normalized[2]}${normalized[3]}${normalized[3]}`.toLowerCase();
-    }
-    if (/^#[0-9a-fA-F]{6}$/.test(normalized)) {
-        return normalized.toLowerCase();
-    }
-    if (/^#[0-9a-fA-F]{8}$/.test(normalized)) {
-        return normalized.slice(0, 7).toLowerCase();
-    }
-    return undefined;
+    return (0, workspaceBadgeColorSync_1.normalizeBadgeColor)(color);
 }
 function sanitizeProjects(projects) {
     if (!Array.isArray(projects)) {

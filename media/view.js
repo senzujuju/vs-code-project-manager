@@ -60,6 +60,7 @@
 
     const filteredCurrent = state.current && matchesSearch(state.current) ? state.current : null;
     const filteredOpenElsewhere = filterProjects(state.openElsewhere);
+    const filteredOpenProjects = [...(filteredCurrent ? [filteredCurrent] : []), ...filteredOpenElsewhere];
     const filteredRecent = filterProjects(state.recent);
     const filteredPinned = filterProjects(state.pinned);
     const filteredOthers = filterProjects(state.others);
@@ -81,8 +82,7 @@
       state.others.length +
       state.groups.reduce((sum, section) => sum + section.projects.length, 0);
     const total =
-      (filteredCurrent ? 1 : 0) +
-      filteredOpenElsewhere.length +
+      filteredOpenProjects.length +
       filteredRecent.length +
       filteredPinned.length +
       filteredOthers.length +
@@ -96,8 +96,7 @@
           : "No projects saved yet. Use the save or add buttons in the toolbar above."
         : "No projects match your search.";
 
-    const hasSectionsAfterCurrent =
-      filteredOpenElsewhere.length > 0 ||
+    const hasSectionsAfterOpenProjects =
       filteredRecent.length > 0 ||
       filteredPinned.length > 0 ||
       filteredOthers.length > 0 ||
@@ -120,9 +119,8 @@
         </div>
         ${errorMessage ? `<div class="error">${escapeHtml(errorMessage)}</div>` : ""}
         ${total === 0 ? `<div class="empty">${emptyMessage}</div>` : ""}
-        ${sectionTemplate("current", "Current project", filteredCurrent ? [filteredCurrent] : [], forceExpanded)}
-        ${filteredCurrent && hasSectionsAfterCurrent ? `<div class="divider"></div>` : ""}
-        ${sectionTemplate("openElsewhere", "Open in other windows", filteredOpenElsewhere, forceExpanded)}
+        ${sectionTemplate("current", "Open projects", filteredOpenProjects, forceExpanded)}
+        ${filteredOpenProjects.length > 0 && hasSectionsAfterOpenProjects ? `<div class="divider"></div>` : ""}
         ${sectionTemplate("recent", "Recent", filteredRecent, forceExpanded)}
         ${sectionTemplate("pinned", "Favorites", filteredPinned, forceExpanded)}
         ${sectionTemplate("projects", "Projects", filteredOthers, forceExpanded)}
@@ -300,16 +298,6 @@
             <span class="section-title">${escapeHtml(section.title)}</span>
             <span class="section-caret ${collapsed ? "is-collapsed" : ""}" aria-hidden="true"></span>
           </button>
-          <button
-            class="section-action-btn"
-            type="button"
-            data-group-action="removeGroup"
-            data-group-id="${escapeHtml(section.id)}"
-            title="Remove ${escapeHtml(section.title)} group"
-            aria-label="Remove ${escapeHtml(section.title)} group"
-          >
-            ${cardIcon("trash")}
-          </button>
         </div>
         ${collapsed
           ? ""
@@ -339,6 +327,7 @@
     const openInNewWindowBtn = project.isCurrent
       ? ""
       : `<div class="card-actions">${iconBtn("openProject", project.id, "new-window", "Open in new window", true)}</div>`;
+    const currentProjectDot = project.isCurrent ? '<span class="current-project-dot" aria-hidden="true"></span>' : "";
 
     return `
       <article
@@ -354,7 +343,7 @@
         >
           ${badge}
           <span class="meta">
-            <span class="name">${escapeHtml(project.name)}</span>
+            <span class="name">${currentProjectDot}<span class="name-label">${escapeHtml(project.name)}</span></span>
             <span class="path" data-full-path="${escapeHtml(project.fullPath)}">${escapeHtml(project.displayPath)}</span>
           </span>
         </button>
@@ -415,12 +404,6 @@
       return;
     }
 
-    const groupActionButton = target.closest("[data-group-action]");
-    if (groupActionButton) {
-      postGroupAction(groupActionButton);
-      return;
-    }
-
     const groupToggle = target.closest("[data-group-toggle]");
     if (groupToggle) {
       const groupId = groupToggle.getAttribute("data-group-toggle");
@@ -459,17 +442,6 @@
     }
 
     vscode.postMessage({ type, projectId, ...(newWindow ? { newWindow: true } : {}) });
-  }
-
-  function postGroupAction(element) {
-    const type = element.getAttribute("data-group-action");
-    const groupId = element.getAttribute("data-group-id");
-
-    if (!type || !groupId) {
-      return;
-    }
-
-    vscode.postMessage({ type, groupId });
   }
 
   function handleAppInput(event) {
@@ -566,8 +538,6 @@
     switch (name) {
       case "new-window":
         return `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9.5 2.5h4v4"/><path d="M13.5 2.5 8 8"/><path d="M7 3H3a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V9"/></svg>`;
-      case "trash":
-        return `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 4.5h9"/><path d="M6 2.5h4"/><path d="M5 4.5v8"/><path d="M11 4.5v8"/><path d="M4.5 4.5l.5 9h6l.5-9"/></svg>`;
       default:
         return "";
     }
