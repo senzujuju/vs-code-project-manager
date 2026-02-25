@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { readGitBranchSync } from "../core/gitBranchReader";
+import { readGitBranchSync, readWorkspaceBranchSync } from "../core/gitBranchReader";
 import { resolveOpenElsewhereState } from "../core/openElsewhereResolver";
 import { GroupChildFolder, resolveProjectGroupSections, ResolvedGroupProject } from "../core/projectGroups";
 import { ProjectGroup, ProjectStore, StoredProject } from "../core/projectStore";
@@ -558,6 +558,9 @@ function mapStoredProjectToWebviewProject(
 ): WebviewProject {
   const isCurrent = currentUri === project.uri;
   const fullPath = formatFullPath(project.uri);
+  const branch = project.kind === "workspace"
+    ? readWorkspaceBranchSync(fullPath)
+    : readGitBranchSync(fullPath);
 
   return {
     id: project.id,
@@ -573,7 +576,7 @@ function mapStoredProjectToWebviewProject(
     initials: getInitials(project.name),
     badgeTone: getBadgeTone(project.id),
     badgeColorOverride: isCurrent ? currentBadgeColor ?? project.badgeColor : project.badgeColor,
-    branch: readGitBranchSync(fullPath) ?? undefined
+    branch: branch ?? undefined
   };
 }
 
