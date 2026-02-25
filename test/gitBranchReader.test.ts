@@ -3,7 +3,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import test from "node:test";
-import { readGitBranchSync, readWorkspaceBranchSync } from "../src/core/gitBranchReader";
+import { readGitBranchSync } from "../src/core/gitBranchReader";
 
 function makeTmpDir(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), "git-branch-test-"));
@@ -67,70 +67,4 @@ test("readGitBranchSync returns null for worktree with invalid gitdir line", () 
   fs.writeFileSync(path.join(projectDir, ".git"), "not a gitdir line\n", "utf8");
 
   assert.equal(readGitBranchSync(projectDir), null);
-});
-
-// readWorkspaceBranchSync tests
-
-test("readWorkspaceBranchSync returns branch for workspace with single folder (absolute path)", () => {
-  const dir = makeTmpDir();
-  const projectDir = path.join(dir, "my-project");
-  fs.mkdirSync(projectDir);
-  const gitDir = path.join(projectDir, ".git");
-  fs.mkdirSync(gitDir);
-  fs.writeFileSync(path.join(gitDir, "HEAD"), "ref: refs/heads/workspace-feature\n", "utf8");
-
-  const workspaceFile = path.join(dir, "project.code-workspace");
-  fs.writeFileSync(workspaceFile, JSON.stringify({ folders: [{ path: projectDir }] }), "utf8");
-
-  assert.equal(readWorkspaceBranchSync(workspaceFile), "workspace-feature");
-});
-
-test("readWorkspaceBranchSync returns branch for workspace with single folder (relative path)", () => {
-  const dir = makeTmpDir();
-  const projectDir = path.join(dir, "my-project");
-  fs.mkdirSync(projectDir);
-  const gitDir = path.join(projectDir, ".git");
-  fs.mkdirSync(gitDir);
-  fs.writeFileSync(path.join(gitDir, "HEAD"), "ref: refs/heads/relative-branch\n", "utf8");
-
-  const workspaceFile = path.join(dir, "project.code-workspace");
-  fs.writeFileSync(workspaceFile, JSON.stringify({ folders: [{ path: "my-project" }] }), "utf8");
-
-  assert.equal(readWorkspaceBranchSync(workspaceFile), "relative-branch");
-});
-
-test("readWorkspaceBranchSync returns null for workspace with multiple folders", () => {
-  const dir = makeTmpDir();
-  const workspaceFile = path.join(dir, "multi.code-workspace");
-  fs.writeFileSync(workspaceFile, JSON.stringify({ folders: [{ path: "/a" }, { path: "/b" }] }), "utf8");
-
-  assert.equal(readWorkspaceBranchSync(workspaceFile), null);
-});
-
-test("readWorkspaceBranchSync returns null for workspace with no folders", () => {
-  const dir = makeTmpDir();
-  const workspaceFile = path.join(dir, "empty.code-workspace");
-  fs.writeFileSync(workspaceFile, JSON.stringify({ folders: [] }), "utf8");
-
-  assert.equal(readWorkspaceBranchSync(workspaceFile), null);
-});
-
-test("readWorkspaceBranchSync returns null for workspace without folders key", () => {
-  const dir = makeTmpDir();
-  const workspaceFile = path.join(dir, "no-folders.code-workspace");
-  fs.writeFileSync(workspaceFile, JSON.stringify({ settings: {} }), "utf8");
-
-  assert.equal(readWorkspaceBranchSync(workspaceFile), null);
-});
-
-test("readWorkspaceBranchSync returns null for invalid JSON", () => {
-  const dir = makeTmpDir();
-  const workspaceFile = path.join(dir, "invalid.code-workspace");
-  fs.writeFileSync(workspaceFile, "not valid json", "utf8");
-
-  assert.equal(readWorkspaceBranchSync(workspaceFile), null);
-});
-
-test("readWorkspaceBranchSync returns null for non-existent file", () => {
-  assert.equal(readWorkspaceBranchSync("/non/existent/workspace.code-workspace"), null);
 });
