@@ -4,3 +4,5 @@
 **/*.ts
 tsconfig*.json
 docs/**
+.opencode/
+**/*.map
