@@ -355,9 +355,9 @@
 
   function customBadgeTemplate(initials, color) {
     return `
-      <svg class="badge-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <rect x="0.5" y="0.5" width="23" height="23" rx="6" fill="${escapeHtml(color)}"></rect>
-        <text x="12" y="12.2" text-anchor="middle" dominant-baseline="middle">${escapeHtml(initials)}</text>
+      <svg class="badge-svg" viewBox="0 0 28 28" aria-hidden="true" focusable="false">
+        <rect x="0.5" y="0.5" width="27" height="27" rx="7" fill="${escapeHtml(color)}"></rect>
+        <text x="14" y="14.5" text-anchor="middle" dominant-baseline="middle">${escapeHtml(initials)}</text>
       </svg>
     `;
   }
