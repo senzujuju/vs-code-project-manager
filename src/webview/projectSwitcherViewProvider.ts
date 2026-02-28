@@ -4,6 +4,7 @@ import * as vscode from "vscode";
 import { readGitBranchSync } from "../core/gitBranchReader";
 import { resolveOpenElsewhereState } from "../core/openElsewhereResolver";
 import { GroupChildFolder, resolveProjectGroupSections, ResolvedGroupProject } from "../core/projectGroups";
+import { getInitials } from "../core/projectInitials";
 import { ProjectGroup, ProjectStore, StoredProject } from "../core/projectStore";
 import { resolveWorkspaceBadgeColor } from "../core/workspaceBadgeColorSync";
 import {
@@ -646,23 +647,6 @@ function getFilePath(uriString: string): string | undefined {
   } catch {
     return undefined;
   }
-}
-
-function getInitials(name: string): string {
-  const tokens = name
-    .trim()
-    .split(/[\s_-]+/)
-    .filter((token) => token.length > 0);
-
-  if (tokens.length === 0) {
-    return "PR";
-  }
-
-  if (tokens.length === 1) {
-    return tokens[0].slice(0, 2).toUpperCase();
-  }
-
-  return `${tokens[0][0]}${tokens[1][0]}`.toUpperCase();
 }
 
 function getBadgeTone(seed: string): number {

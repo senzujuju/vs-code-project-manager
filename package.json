@@ -2,7 +2,7 @@
 	"name": "project-switcher",
 	"displayName": "Project Switcher",
 	"description": "Webview-first project switcher for folders and workspaces",
-	"version": "0.0.6",
+	"version": "0.0.8",
 	"publisher": "kungurcev",
 	"engines": {
 		"vscode": "^1.85.0"
@@ -22,7 +22,8 @@
 		"onCommand:projectSwitcher.addWorkspaceProject",
 		"onCommand:projectSwitcher.addProjectGroup",
 		"onCommand:projectSwitcher.cloneProject",
-		"onCommand:projectSwitcher.removeProjectGroup"
+		"onCommand:projectSwitcher.removeProjectGroup",
+		"onCommand:projectSwitcher.quickPeek"
 	],
 	"contributes": {
 		"commands": [
@@ -37,6 +38,12 @@
 				"title": "Project Switcher: Focus Search",
 				"category": "Project Switcher",
 				"icon": "$(search)"
+			},
+			{
+				"command": "projectSwitcher.quickPeek",
+				"title": "Project Switcher: Quick Peek",
+				"category": "Project Switcher",
+				"icon": "$(zap)"
 			},
 			{
 				"command": "projectSwitcher.saveCurrentProject",
@@ -265,6 +272,12 @@
 				"command": "projectSwitcher.focusSearch",
 				"key": "ctrl+alt+p",
 				"mac": "cmd+alt+p",
+				"when": "!terminalFocus"
+			},
+			{
+				"command": "projectSwitcher.quickPeek",
+				"key": "ctrl+alt+k",
+				"mac": "cmd+alt+k",
 				"when": "!terminalFocus"
 			}
 		],
