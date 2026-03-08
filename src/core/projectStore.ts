@@ -237,6 +237,8 @@ export class ProjectStore {
   }
 
   saveProject(input: SaveProjectInput): StoredProject {
+    this.refreshStateFromStorage();
+
     const name = sanitizeName(input.name);
     const uri = sanitizeUri(input.uri);
     const timestamp = this.now();
@@ -266,6 +268,8 @@ export class ProjectStore {
   }
 
   saveGroup(input: SaveProjectGroupInput): ProjectGroup {
+    this.refreshStateFromStorage();
+
     const name = sanitizeName(input.name);
     const rootUri = sanitizeRootUri(input.rootUri);
     const timestamp = this.now();
@@ -308,6 +312,8 @@ export class ProjectStore {
   }
 
   renameProject(projectId: string, nextName: string): StoredProject | undefined {
+    this.refreshStateFromStorage();
+
     const project = this.state.projects.find((item) => item.id === projectId);
     if (!project) {
       return undefined;
@@ -320,6 +326,8 @@ export class ProjectStore {
   }
 
   removeProject(projectId: string): boolean {
+    this.refreshStateFromStorage();
+
     const before = this.state.projects.length;
     this.state.projects = this.state.projects.filter((item) => item.id !== projectId);
 
@@ -332,6 +340,8 @@ export class ProjectStore {
   }
 
   removeGroup(groupId: string): boolean {
+    this.refreshStateFromStorage();
+
     const before = this.state.groups.length;
     this.state.groups = this.state.groups.filter((item) => item.id !== groupId);
 
@@ -344,6 +354,8 @@ export class ProjectStore {
   }
 
   toggleGroupCollapsed(groupId: string): ProjectGroup | undefined {
+    this.refreshStateFromStorage();
+
     const group = this.state.groups.find((item) => item.id === groupId);
     if (!group) {
       return undefined;
@@ -355,6 +367,8 @@ export class ProjectStore {
   }
 
   togglePin(projectId: string): StoredProject | undefined {
+    this.refreshStateFromStorage();
+
     const project = this.state.projects.find((item) => item.id === projectId);
     if (!project) {
       return undefined;
@@ -367,6 +381,8 @@ export class ProjectStore {
   }
 
   markOpened(projectId: string): StoredProject | undefined {
+    this.refreshStateFromStorage();
+
     const project = this.state.projects.find((item) => item.id === projectId);
     if (!project) {
       return undefined;
@@ -380,6 +396,8 @@ export class ProjectStore {
   }
 
   setBadgeColor(projectId: string, badgeColor: string | undefined): StoredProject | undefined {
+    this.refreshStateFromStorage();
+
     const project = this.state.projects.find((item) => item.id === projectId);
     if (!project) {
       return undefined;
@@ -396,6 +414,8 @@ export class ProjectStore {
   }
 
   setBadgeColorByUri(uri: string, badgeColor: string | undefined): StoredProject | undefined {
+    this.refreshStateFromStorage();
+
     const normalizedUri = uri.trim();
     if (normalizedUri.length === 0) {
       return undefined;
@@ -407,6 +427,10 @@ export class ProjectStore {
     }
 
     return this.setBadgeColor(project.id, badgeColor);
+  }
+
+  private refreshStateFromStorage(): void {
+    this.state = sanitizeState(this.storage.read());
   }
 
   private persist(): void {

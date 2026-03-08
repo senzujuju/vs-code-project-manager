@@ -42,6 +42,24 @@ function createStore(nowValues) {
     strict_1.default.equal(store.getAllProjects().length, 1);
     strict_1.default.equal(store.getAllProjects()[0].name, "Core API Renamed");
 });
+(0, node_test_1.default)("saveProject preserves projects written by another store instance", () => {
+    const adapter = createMemoryAdapter();
+    const storeA = new projectStore_1.ProjectStore(adapter, () => 1, () => "id-a");
+    const storeB = new projectStore_1.ProjectStore(adapter, () => 2, () => "id-b");
+    storeA.saveProject({
+        name: "Alpha",
+        kind: "folder",
+        uri: "file:///tmp/alpha"
+    });
+    storeB.saveProject({
+        name: "Beta",
+        kind: "folder",
+        uri: "file:///tmp/beta"
+    });
+    const reloadedStore = new projectStore_1.ProjectStore(adapter, () => 3, () => "id-c");
+    const projectNames = reloadedStore.getAllProjects().map((project) => project.name).sort();
+    strict_1.default.deepEqual(projectNames, ["Alpha", "Beta"]);
+});
 (0, node_test_1.default)("renameProject changes name and updatedAt", () => {
     const store = createStore([10, 20, 30]);
     const project = store.saveProject({

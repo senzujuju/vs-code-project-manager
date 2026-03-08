@@ -52,6 +52,29 @@ test("saveProject updates existing project with same uri", () => {
   assert.equal(store.getAllProjects()[0].name, "Core API Renamed");
 });
 
+test("saveProject preserves projects written by another store instance", () => {
+  const adapter = createMemoryAdapter();
+  const storeA = new ProjectStore(adapter, () => 1, () => "id-a");
+  const storeB = new ProjectStore(adapter, () => 2, () => "id-b");
+
+  storeA.saveProject({
+    name: "Alpha",
+    kind: "folder",
+    uri: "file:///tmp/alpha"
+  });
+
+  storeB.saveProject({
+    name: "Beta",
+    kind: "folder",
+    uri: "file:///tmp/beta"
+  });
+
+  const reloadedStore = new ProjectStore(adapter, () => 3, () => "id-c");
+  const projectNames = reloadedStore.getAllProjects().map((project) => project.name).sort();
+
+  assert.deepEqual(projectNames, ["Alpha", "Beta"]);
+});
+
 test("renameProject changes name and updatedAt", () => {
   const store = createStore([10, 20, 30]);
 

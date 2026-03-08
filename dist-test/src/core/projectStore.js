@@ -154,6 +154,7 @@ class ProjectStore {
         };
     }
     saveProject(input) {
+        this.refreshStateFromStorage();
         const name = sanitizeName(input.name);
         const uri = sanitizeUri(input.uri);
         const timestamp = this.now();
@@ -179,6 +180,7 @@ class ProjectStore {
         return cloneProject(created);
     }
     saveGroup(input) {
+        this.refreshStateFromStorage();
         const name = sanitizeName(input.name);
         const rootUri = sanitizeRootUri(input.rootUri);
         const timestamp = this.now();
@@ -214,6 +216,7 @@ class ProjectStore {
         return project ? cloneProject(project) : undefined;
     }
     renameProject(projectId, nextName) {
+        this.refreshStateFromStorage();
         const project = this.state.projects.find((item) => item.id === projectId);
         if (!project) {
             return undefined;
@@ -224,6 +227,7 @@ class ProjectStore {
         return cloneProject(project);
     }
     removeProject(projectId) {
+        this.refreshStateFromStorage();
         const before = this.state.projects.length;
         this.state.projects = this.state.projects.filter((item) => item.id !== projectId);
         if (this.state.projects.length === before) {
@@ -233,6 +237,7 @@ class ProjectStore {
         return true;
     }
     removeGroup(groupId) {
+        this.refreshStateFromStorage();
         const before = this.state.groups.length;
         this.state.groups = this.state.groups.filter((item) => item.id !== groupId);
         if (this.state.groups.length === before) {
@@ -242,6 +247,7 @@ class ProjectStore {
         return true;
     }
     toggleGroupCollapsed(groupId) {
+        this.refreshStateFromStorage();
         const group = this.state.groups.find((item) => item.id === groupId);
         if (!group) {
             return undefined;
@@ -251,6 +257,7 @@ class ProjectStore {
         return cloneGroup(group);
     }
     togglePin(projectId) {
+        this.refreshStateFromStorage();
         const project = this.state.projects.find((item) => item.id === projectId);
         if (!project) {
             return undefined;
@@ -261,6 +268,7 @@ class ProjectStore {
         return cloneProject(project);
     }
     markOpened(projectId) {
+        this.refreshStateFromStorage();
         const project = this.state.projects.find((item) => item.id === projectId);
         if (!project) {
             return undefined;
@@ -272,6 +280,7 @@ class ProjectStore {
         return cloneProject(project);
     }
     setBadgeColor(projectId, badgeColor) {
+        this.refreshStateFromStorage();
         const project = this.state.projects.find((item) => item.id === projectId);
         if (!project) {
             return undefined;
@@ -285,6 +294,7 @@ class ProjectStore {
         return cloneProject(project);
     }
     setBadgeColorByUri(uri, badgeColor) {
+        this.refreshStateFromStorage();
         const normalizedUri = uri.trim();
         if (normalizedUri.length === 0) {
             return undefined;
@@ -294,6 +304,9 @@ class ProjectStore {
             return undefined;
         }
         return this.setBadgeColor(project.id, badgeColor);
+    }
+    refreshStateFromStorage() {
+        this.state = sanitizeState(this.storage.read());
     }
     persist() {
         this.storage.write({
