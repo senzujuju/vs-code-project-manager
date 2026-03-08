@@ -18,6 +18,8 @@ Webview-first project switcher for Visual Studio Code.
 
 - `Project Switcher: Focus`
 - `Project Switcher: Focus Search`
+- `Project Switcher: Quick Peek`
+- `Project Switcher: Quick Launcher (Preview)`
 - `Project Switcher: Save Current Project`
 - `Project Switcher: Add Project`
 - `Project Switcher: Add Folder`

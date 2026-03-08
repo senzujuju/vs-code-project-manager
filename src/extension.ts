@@ -25,6 +25,7 @@ import {
 	ProjectSwitcherActions,
 	ProjectSwitcherViewProvider,
 } from './webview/projectSwitcherViewProvider';
+import { showQuickLauncherPreview } from './webview/quickLauncherPreview';
 
 const STORAGE_KEY = 'projectSwitcher.state';
 const SECTION_VISIBILITY_STORAGE_KEY = 'projectSwitcher.sectionVisibility';
@@ -43,6 +44,7 @@ const COMMANDS = {
 	focus: 'projectSwitcher.focus',
 	focusSearch: 'projectSwitcher.focusSearch',
 	quickPeek: 'projectSwitcher.quickPeek',
+	quickLauncherPreview: 'projectSwitcher.quickLauncherPreview',
 	saveCurrent: 'projectSwitcher.saveCurrentProject',
 	addProject: 'projectSwitcher.addProject',
 	addFolder: 'projectSwitcher.addFolderProject',
@@ -584,6 +586,10 @@ export function activate(context: vscode.ExtensionContext): void {
 
 	register(COMMANDS.quickPeek, async () => {
 		await showQuickPeek(store, actions);
+	});
+
+	register(COMMANDS.quickLauncherPreview, async () => {
+		showQuickLauncherPreview(context.extensionUri, store, actions);
 	});
 
 	register(COMMANDS.saveCurrent, async () => {

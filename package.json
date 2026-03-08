@@ -23,7 +23,8 @@
 		"onCommand:projectSwitcher.addProjectGroup",
 		"onCommand:projectSwitcher.cloneProject",
 		"onCommand:projectSwitcher.removeProjectGroup",
-		"onCommand:projectSwitcher.quickPeek"
+		"onCommand:projectSwitcher.quickPeek",
+		"onCommand:projectSwitcher.quickLauncherPreview"
 	],
 	"contributes": {
 		"commands": [
@@ -44,6 +45,12 @@
 				"title": "Project Switcher: Quick Peek",
 				"category": "Project Switcher",
 				"icon": "$(zap)"
+			},
+			{
+				"command": "projectSwitcher.quickLauncherPreview",
+				"title": "Project Switcher: Quick Launcher (Preview)",
+				"category": "Project Switcher",
+				"icon": "$(screen-full)"
 			},
 			{
 				"command": "projectSwitcher.saveCurrentProject",
@@ -276,6 +283,12 @@
 			},
 			{
 				"command": "projectSwitcher.quickPeek",
+				"key": "ctrl+alt+shift+k",
+				"mac": "cmd+alt+shift+k",
+				"when": "!terminalFocus"
+			},
+			{
+				"command": "projectSwitcher.quickLauncherPreview",
 				"key": "ctrl+alt+k",
 				"mac": "cmd+alt+k",
 				"when": "!terminalFocus"
