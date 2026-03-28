@@ -117,8 +117,22 @@ export function activate(context: vscode.ExtensionContext): void {
 		},
 
 		addProject: async () => {
+			const currentInput = getCurrentProjectInput();
+			const currentAlreadySaved = currentInput
+				? !!store.getProjectByUri(currentInput.uri)
+				: true;
+
 			const selected = await vscode.window.showQuickPick(
 				[
+					...(currentInput && !currentAlreadySaved
+						? [
+								{
+									label: '$(bookmark) Current Project',
+									description: 'Save the currently open workspace',
+									projectKind: 'current' as const,
+								},
+							]
+						: []),
 					{
 						label: '$(folder-opened) Folder',
 						description: 'Save a folder as project',
@@ -149,6 +163,11 @@ export function activate(context: vscode.ExtensionContext): void {
 				return;
 			}
 
+			if (selected.projectKind === 'current') {
+				await actions.saveCurrentProject();
+				return;
+			}
+
 			if (selected.projectKind === 'folder') {
 				await actions.addFolderProject();
 				return;
@@ -171,7 +190,7 @@ export function activate(context: vscode.ExtensionContext): void {
 			const picked = await vscode.window.showOpenDialog({
 				canSelectFiles: false,
 				canSelectFolders: true,
-				canSelectMany: false,
+				canSelectMany: true,
 				openLabel: 'Select Folder',
 			});
 
@@ -179,18 +198,25 @@ export function activate(context: vscode.ExtensionContext): void {
 				return;
 			}
 
-			const folderUri = picked[0];
-			const defaultName = path.basename(folderUri.fsPath) || 'Folder Project';
-			const name = await askProjectName('Save folder project', defaultName);
-			if (!name) {
-				return;
-			}
+			if (picked.length === 1) {
+				const folderUri = picked[0];
+				const defaultName = path.basename(folderUri.fsPath) || 'Folder Project';
+				const name = await askProjectName('Save folder project', defaultName);
+				if (!name) {
+					return;
+				}
 
-			store.saveProject({
-				name,
-				kind: 'folder',
-				uri: folderUri.toString(),
-			});
+				store.saveProject({
+					name,
+					kind: 'folder',
+					uri: folderUri.toString(),
+				});
+			} else {
+				for (const folderUri of picked) {
+					const name = path.basename(folderUri.fsPath) || 'Folder Project';
+					store.saveProject({ name, kind: 'folder', uri: folderUri.toString() });
+				}
+			}
 		},
 
 		addWorkspaceProject: async () => {
